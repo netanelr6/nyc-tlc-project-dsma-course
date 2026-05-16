@@ -1,0 +1,19 @@
+# Data files (Never upload to GitHub!)
+data/
+*.parquet
+*.csv
+
+# Python Virtual Environments
+venv/
+.venv/
+env/
+
+# IDEs and OS junk
+.idea/
+.vscode/
+.DS_Store
+__pycache__/
+*.ipynb_checkpoints/
+
+# Secrets & Configs
+.env

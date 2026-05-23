@@ -1,5 +1,4 @@
 # Data files (Never upload to GitHub!)
-data/
 *.parquet
 *.csv
 

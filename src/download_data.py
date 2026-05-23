@@ -3,18 +3,32 @@ NYC TLC Yellow Taxi Data Downloader
 -----------------------------------
 This script automates the retrieval of the New York City Taxi and Limousine 
 Commission (TLC) Yellow Taxi trip record datasets in Parquet format.
-It targets all months for 2024 and 2025, and the first two months of 2026.
-
-The data is saved locally to a designated directory which should be excluded
-from version control (Git) via .gitignore.
+It is designed to be modular, idempotent (skips existing files), and 
+aligned with standard ML project directory structures.
 """
 
 import os
 import requests
 from tqdm import tqdm
 
+# ==========================================
+# CONFIGURATION
+# ==========================================
+# Target directory for raw data (aligned with the MLOps project structure).
+DATA_DIR = "data/raw"
 
-def setup_data_directory(base_dir: str = "data") -> str:
+# Define the specific years and months to download.
+# Key: Year (int), Value: List of months (list of ints).
+TARGETS_TO_DOWNLOAD = {
+    2024: [1, 2] #for small test
+    # 2024: list(range(1, 13)),  # Full year 2024 (Jan - Dec)
+    # 2025: list(range(1, 13)),  # Full year 2025 (Jan - Dec)
+    # 2026: [1, 2]               # Test set: Jan and Feb 2026 only
+}
+# ==========================================
+
+
+def setup_data_directory(base_dir: str = DATA_DIR) -> str:
     """
     Ensures the target data directory exists locally.
     
@@ -28,26 +42,20 @@ def setup_data_directory(base_dir: str = "data") -> str:
     return base_dir
 
 
-def generate_download_targets() -> list:
+def generate_download_targets(targets_dict: dict) -> list:
     """
-    Generates a list of tuples containing the specific years and months 
-    required for the assignment pipeline (2024-2025 for training, 
-    Jan-Feb 2026 for testing).
+    Generates a flattened list of (year, month) tuples based on the configuration block.
     
+    Args:
+        targets_dict (dict): Dictionary mapping years to lists of months.
+        
     Returns:
         list of tuple: A list containing (year, month) combinations.
     """
     targets = []
-    
-    # Full dataset for training: 2024 and 2025
-    for year in [2024, 2025]:
-        for month in range(1, 13):
+    for year, months in targets_dict.items():
+        for month in months:
             targets.append((year, month))
-            
-    # Restricted test set: January and February 2026
-    for month in range(1, 3):
-        targets.append((2026, month))
-        
     return targets
 
 
@@ -64,6 +72,7 @@ def download_file(url: str, output_path: str, file_name: str) -> bool:
     Returns:
         bool: True if the file exists or downloaded successfully, False otherwise.
     """
+    # Check if file exists to ensure idempotency (prevent duplicate downloads)
     if os.path.exists(output_path):
         print(f"  [SKIPPED] {file_name} already exists locally.")
         return True
@@ -102,7 +111,7 @@ def main():
     
     base_url = "https://d37ci6vzurychx.cloudfront.net/trip-data"
     data_dir = setup_data_directory()
-    targets = generate_download_targets()
+    targets = generate_download_targets(TARGETS_TO_DOWNLOAD)
     
     success_count = 0
     

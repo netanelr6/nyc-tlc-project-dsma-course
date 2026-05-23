@@ -154,7 +154,7 @@ def clean_dataframe(df):
     df = fill_non_critical_nulls(df)
     df = select_relevant_columns(df)
     df = drop_remaining_nulls(df)
-    df = filter_valid_trips(df)
+    # df = filter_valid_trips(df)
     print(f"  Output rows : {len(df):,}")
     return df.reset_index(drop=True)
 
@@ -191,12 +191,15 @@ def clean_parquet(input_path, output_path=None, sample_size=None):
     return df_clean
 
 
+
 if __name__ == "__main__":
     # Test the cleaning pipeline on a tiny subset
     input_file = "data/raw/yellow_tripdata_2024-01.parquet"
     output_file = "data/processed/yellow_tripdata_2024-01_clean.parquet"
     
     if Path(input_file).exists():
-        clean_parquet(input_file, output_file, sample_size=10000)
+        # clean_parquet(input_file, output_file, sample_size=10000)
+        df_clean = clean_parquet(input_file, output_file)
+        print (df_clean)  
     else:
         print(f"Cannot find {input_file}. Please run download_data.py first.")

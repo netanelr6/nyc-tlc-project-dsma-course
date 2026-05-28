@@ -45,6 +45,7 @@ RELEVANT_COLUMNS = [
     "DOLocationID",
     "RatecodeID", # For further analysis, not training
     "payment_type", # For further analysis, not training
+    "fare_amount",   # Kept because validation.py needs it to check the $3.0 minimum
     "total_amount",  # Kept to calculate target variable later
     "tip_amount"     # Kept to calculate target variable later
 ]
@@ -127,61 +128,106 @@ def drop_remaining_nulls(df):
     return df
 
 
-def filter_valid_trips(df):
-    """
-    Removes logically invalid trips:
-    - total_amount must be strictly positive (filters out refunds/errors).
-    - trip_distance must be strictly positive.
-    """
+# --- הפונקציה הישנה (נשמרה לתיעוד) ---
+# def filter_valid_trips(df):
+#     """
+#     Removes logically invalid trips:
+#     - total_amount must be strictly positive (filters out refunds/errors).
+#     - trip_distance must be strictly positive.
+#     """
+#     before = len(df)
+#     
+#     df = df[(df["total_amount"] > 0) & (df["trip_distance"] > 0)]
+#             
+#     dropped = before - len(df)
+#     if dropped:
+#         print(f"  filter_valid_trips      : dropped {dropped:,} invalid rows")
+#     return df
+
+def filter_monetary_logic(df):
+    """Filters out invalid monetary amounts (refunds, errors, below minimum fare)."""
     before = len(df)
-    
-    df = df[(df["total_amount"] > 0) & (df["trip_distance"] > 0)]
-            
+    mask = (df["total_amount"] > 0) & (df["fare_amount"] >= 3.0)
+    df = df[mask]
     dropped = before - len(df)
     if dropped:
-        print(f"  filter_valid_trips      : dropped {dropped:,} invalid rows")
+        print(f"  filter_monetary_logic   : dropped {dropped:,} invalid rows")
+    return df
+
+def filter_temporal_logic(df):
+    """Filters out trips where dropoff time is before pickup time (time travel)."""
+    before = len(df)
+    mask = df["tpep_dropoff_datetime"] >= df["tpep_pickup_datetime"]
+    df = df[mask]
+    dropped = before - len(df)
+    if dropped:
+        print(f"  filter_temporal_logic   : dropped {dropped:,} invalid rows")
+    return df
+
+def filter_spatial_logic(df):
+    """Filters out trips with strictly negative distance (allows 0 for base fare cases)."""
+    before = len(df)
+    mask = df["trip_distance"] >= 0
+    df = df[mask]
+    dropped = before - len(df)
+    if dropped:
+        print(f"  filter_spatial_logic    : dropped {dropped:,} invalid rows")
     return df
 
 # ── Main entry point ──────────────────────────────────────────────────────────
 
-def clean_dataframe(df):
+def clean_dataframe(df, is_train=True):
     """
     Executes the sequential data cleaning pipeline.
+    If is_train=False, applies only column selection and safe null filling, preserving all rows.
     """
     print(f"  Input  rows : {len(df):,}")
-    df = drop_critical_nulls(df)
-    df = drop_pre_december_2023(df)
+    
+    if is_train:
+        df = drop_critical_nulls(df)
+        df = drop_pre_december_2023(df)
+        
     df = fill_non_critical_nulls(df)
     df = select_relevant_columns(df)
-    df = drop_remaining_nulls(df)
-    # df = filter_valid_trips(df)
+    
+    if is_train:
+        df = drop_remaining_nulls(df)
+        # Business logic filters
+        df = filter_temporal_logic(df)
+        df = filter_spatial_logic(df)
+        df = filter_monetary_logic(df)
+    
     print(f"  Output rows : {len(df):,}")
     return df.reset_index(drop=True)
 
 
-def clean_parquet(input_path, output_path=None, sample_size=None):
+def clean_parquet(DF_not_clean, output_path=None, sample_size=None, is_train=True):
+    
+    print(f"\n{'='*60}\nSTARTING CLEANING PIPELINE\n{'='*60}")
     """
     Loads, cleans, and optionally saves a parquet dataset.
     
     Args:
-        input_path  (str): Path to the raw .parquet file.
+        DF_not_clean (pd.DataFrame): The DataFrame to clean.
         output_path (str): Destination for the cleaned file (optional).
         sample_size (int): If provided, processes only the top N rows for rapid testing.
+        is_train (bool): Toggle between Train (filtering rows) and Test/Reality (preserving rows).
     
     Returns:
         pd.DataFrame  Cleaned DataFrame.
     """
 
 
-    print(f"Loading data from {input_path}...")
-    df = pd.read_parquet(input_path)
+    print(f"Loading data from DF...")
+    print(f"Processing DataFrame...")
+    df = DF_not_clean
     
     # Modularity: subset the data if testing
     if sample_size is not None:
         print(f"  [TEST MODE] Sampling {sample_size:,} rows for rapid execution.")
         df = df.head(sample_size)
 
-    df_clean = clean_dataframe(df)
+    df_clean = clean_dataframe(df, is_train=is_train)
 
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -192,14 +238,16 @@ def clean_parquet(input_path, output_path=None, sample_size=None):
 
 
 
-if __name__ == "__main__":
-    # Test the cleaning pipeline on a tiny subset
-    input_file = "data/raw/yellow_tripdata_2024-01.parquet"
-    output_file = "data/processed/yellow_tripdata_2024-01_clean.parquet"
+# if __name__ == "__main__":
+#     # Test the cleaning pipeline on a tiny subset
+#     input_file_path = Path("data/raw/train/yellow_tripdata_2024-01.parquet")
+#     output_file_path = Path("data/processed/yellow_tripdata_2024-01_clean.parquet")
     
-    if Path(input_file).exists():
-        # clean_parquet(input_file, output_file, sample_size=10000)
-        df_clean = clean_parquet(input_file, output_file)
-        print (df_clean)  
-    else:
-        print(f"Cannot find {input_file}. Please run download_data.py first.")
+#     if input_file_path.exists():
+#         print(f"Loading test file: {input_file_path}")
+#         df_to_test = pd.read_parquet(input_file_path)
+#         df_clean = clean_parquet(df_to_test, output_path=output_file_path)
+#         print("\n--- Cleaned DataFrame sample ---")
+#         print(df_clean.head())
+#     else:
+#         print(f"Cannot find {input_file_path}. Please run download_data.py first.")

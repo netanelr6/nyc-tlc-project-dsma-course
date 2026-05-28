@@ -14,52 +14,67 @@ from tqdm import tqdm
 # ==========================================
 # CONFIGURATION
 # ==========================================
-# Target directory for raw data (aligned with the MLOps project structure).
+# Base directory for raw data (aligned with the MLOps project structure).
 DATA_DIR = "data/raw"
 
 # Define the specific years and months to download.
-# Key: Year (int), Value: List of months (list of ints).
+# Keys represent sub-directories (e.g., 'train', 'test').
+# Values are mappings of Year (int) to List of months (list of ints).
 TARGETS_TO_DOWNLOAD = {
-    2024: [1, 2] #for small test
-    # 2024: list(range(1, 13)),  # Full year 2024 (Jan - Dec)
-    # 2025: list(range(1, 13)),  # Full year 2025 (Jan - Dec)
-    # 2026: [1, 2]               # Test set: Jan and Feb 2026 only
+    "train": {
+        2024: [1, 3], # for small test
+        # 2024: list(range(1, 13)),  # Full year 2024 (Jan - Dec)
+        # 2025: list(range(1, 13)),  # Full year 2025 (Jan - Dec)
+    },
+    "test": {
+        2025: [1],  #small test 
+        # 2026: [1, 2]               # Test set: Jan and Feb 2026 only
+    }
 }
+
+# Set to True to only print URLs and check file existence without downloading.
+DRY_RUN = False
 # ==========================================
 
 
-def setup_data_directory(base_dir: str = DATA_DIR) -> str:
+def setup_data_directories(base_dir: str, splits: list) -> dict:
     """
-    Ensures the target data directory exists locally.
+    Ensures the target data sub-directories exist locally.
     
     Args:
         base_dir (str): Path to the target directory.
+        splits (list): List of sub-directory names (e.g., ['train', 'test']).
         
     Returns:
-        str: The validated directory path.
+        dict: A mapping of split names to their created directory paths.
     """
-    os.makedirs(base_dir, exist_ok=True)
-    return base_dir
+    dirs = {}
+    for split in splits:
+        path = os.path.join(base_dir, split)
+        os.makedirs(path, exist_ok=True)
+        dirs[split] = path
+    return dirs
 
 
-def generate_download_targets(targets_dict: dict) -> list:
+def generate_download_targets(targets_config: dict) -> list:
     """
-    Generates a flattened list of (year, month) tuples based on the configuration block.
+    Generates a flattened list of (split, year, month) tuples based on the configuration block.
     
     Args:
-        targets_dict (dict): Dictionary mapping years to lists of months.
+        targets_config (dict): Dictionary mapping splits to years and months.
         
     Returns:
-        list of tuple: A list containing (year, month) combinations.
+        list of tuple: A list containing (split, year, month) combinations.
     """
     targets = []
-    for year, months in targets_dict.items():
-        for month in months:
-            targets.append((year, month))
+    for split, years_dict in targets_config.items():
+        for year, months in years_dict.items():
+            for month in months:
+                targets.append((split, year, month))
     return targets
 
 
-def download_file(url: str, output_path: str, file_name: str) -> bool:
+def download_file(url: str, output_path: str, file_name: str, dry_run: bool = False) -> bool:
     """
     Downloads a single file via an HTTP GET request with a visual progress bar.
     Skips the download if the file already exists locally to prevent data replication.
@@ -68,16 +83,21 @@ def download_file(url: str, output_path: str, file_name: str) -> bool:
         url (str): The remote URL of the target file.
         output_path (str): The local destination path.
         file_name (str): The name of the file being processed.
+        dry_run (bool): If True, only checks existence and prints the URL without downloading.
         
     Returns:
         bool: True if the file exists or downloaded successfully, False otherwise.
     """
     # Check if file exists to ensure idempotency (prevent duplicate downloads)
     if os.path.exists(output_path):
-        print(f"  [SKIPPED] {file_name} already exists locally.")
+        print(f"  [EXISTS] {file_name} is already locally available.\n           URL: {url}")
         return True
 
-    print(f"  [FETCHING] {file_name}...")
+    if dry_run:
+        print(f"  [MISSING] {file_name} needs to be downloaded.\n            URL: {url}")
+        return False
+
+    print(f"  [FETCHING] {file_name}\n             URL: {url}")
     try:
         response = requests.get(url, stream=True)
         if response.status_code == 200:
@@ -101,7 +121,7 @@ def download_file(url: str, output_path: str, file_name: str) -> bool:
         return False
 
 
-def main():
+def run_download_pipeline(targets_config: dict = TARGETS_TO_DOWNLOAD, base_dir: str = DATA_DIR, dry_run: bool = DRY_RUN):
     """
     Main execution pipeline for sequential data retrieval.
     """
@@ -110,26 +130,29 @@ def main():
     print("=" * 60)
     
     base_url = "https://d37ci6vzurychx.cloudfront.net/trip-data"
-    data_dir = setup_data_directory()
-    targets = generate_download_targets(TARGETS_TO_DOWNLOAD)
+    splits = list(targets_config.keys())
+    dirs = setup_data_directories(base_dir, splits)
+    targets = generate_download_targets(targets_config)
     
     success_count = 0
     
-    for year, month in targets:
+    for split, year, month in targets:
         # Construct standardized file name format: yellow_tripdata_YYYY-MM.parquet
         file_name = f"yellow_tripdata_{year}-{month:02d}.parquet"
         url = f"{base_url}/{file_name}"
-        output_path = os.path.join(data_dir, file_name)
+        output_path = os.path.join(dirs[split], file_name)
         
-        if download_file(url, output_path, file_name):
+        if download_file(url, output_path, file_name, dry_run=dry_run):
             success_count += 1
 
     print("=" * 60)
     print("PIPELINE EXECUTION COMPLETE")
     print(f"Execution Summary: Successfully verified {success_count}/{len(targets)} partitions.")
-    print(f"Target Directory: '{data_dir}/'")
+    print("Target Directories:")
+    for split_name, split_path in dirs.items():
+        print(f"  - {split_name.upper()}: '{split_path}/'")
     print("=" * 60)
 
 
 if __name__ == "__main__":
-    main()
+    run_download_pipeline()

@@ -17,7 +17,7 @@ import joblib
 from pathlib import Path
 
 from sklearn.linear_model    import LinearRegression
-from sklearn.ensemble        import RandomForestRegressor, GradientBoostingRegressor  # noqa: F401
+from sklearn.ensemble        import RandomForestRegressor, HistGradientBoostingRegressor  # noqa: F401
 from sklearn.base            import clone
 
 try:
@@ -40,18 +40,19 @@ CANDIDATE_MODELS = {
     "linear_regression": LinearRegression(),
 
     "random_forest": RandomForestRegressor(
-        n_estimators=100,
-        max_depth=None,
-        min_samples_leaf=5,
+        n_estimators=50,
+        max_depth=10,
+        min_samples_leaf=50,
+        max_samples=0.1,
         n_jobs=-1,
         random_state=42,
     ),
 
-    "gradient_boosting": GradientBoostingRegressor(
-        n_estimators=100,
-        max_depth=3,
+    "gradient_boosting": HistGradientBoostingRegressor(
+        max_iter=100,
+        max_depth=5,
         learning_rate=0.1,
-        min_samples_leaf=5,
+        min_samples_leaf=50,
         random_state=42,
     ),
 }
@@ -115,11 +116,13 @@ def load_model(name, model_dir):
 def load_all_models(model_dir):
     """
     Load every .pkl file in model_dir and return a dict of
-    { model_name: fitted_model }.
+    { model_name: fitted_model } (skips scaler.pkl).
     """
     model_dir = Path(model_dir)
     models    = {}
     for pkl_file in sorted(model_dir.glob("*.pkl")):
+        if pkl_file.name == "scaler.pkl":
+            continue
         models[pkl_file.stem] = joblib.load(pkl_file)
     if not models:
         raise FileNotFoundError(f"No model .pkl files found in {model_dir}")

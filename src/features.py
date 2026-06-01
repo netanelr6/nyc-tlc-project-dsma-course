@@ -27,21 +27,23 @@ import joblib
 # TARGET_COL = "trip_duration_minutes"
 TARGET_COL = "total_fare_amount"
 
-# Features to scale (fit on train, apply to both train and test)
-# SCALE_FEATURES = ["trip_distance", "passenger_count"]
-SCALE_FEATURES = ["trip_distance"]
-# SCALE_FEATURES = [
-#     "trip_distance",
-#     "pickup_hour",
-#     "day_of_week",
-#     "is_weekend",
-#     "time_of_day_bucket",
-#     "distance_x_time_of_day",
-#     "pickup_zone_x_hour",
-#     "distance_x_rush_hour",
-#     "pickup_hour_sin",
-#     "pickup_hour_cos"
-# ]
+SCALE_FEATURES = [
+    "trip_distance",
+    "pickup_hour",
+    "day_of_week",
+    "is_weekend",
+    "time_of_day_bucket",
+    "pickup_hour_sin",
+    "pickup_hour_cos",
+    "distance_x_time_of_day",
+    "pickup_zone_x_hour",
+    "distance_x_rush_hour",
+    "est_base_fare",
+    "est_congestion_surcharge",
+    "est_extra",
+    "est_airport_fee",
+    "est_total_fare_without_tolls"
+]
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -148,6 +150,99 @@ def _add_time_of_day_bucket(df):
 
 # ── Domain-driven features ────────────────────────────────────────────────────
 
+_ZONES_CACHED = None
+_MANHATTAN_SOUTH_96 = None
+_MANHATTAN_ZONES = None
+
+def _get_zone_mappings():
+    global _ZONES_CACHED, _MANHATTAN_SOUTH_96, _MANHATTAN_ZONES
+    if _ZONES_CACHED is None:
+        try:
+            lookup_path = Path(__file__).parent.parent / "notebooks" / "taxi_zone_lookup.csv"
+            if not lookup_path.exists():
+                lookup_path = Path(__file__).parent.parent / "taxi_zone_lookup.csv"
+            
+            if lookup_path.exists():
+                zones_df = pd.read_csv(lookup_path)
+                _MANHATTAN_ZONES = set(zones_df[zones_df["Borough"] == "Manhattan"]["LocationID"].tolist())
+                _MANHATTAN_SOUTH_96 = set(zones_df[(zones_df["Borough"] == "Manhattan") & (zones_df["service_zone"] == "Yellow Zone")]["LocationID"].tolist())
+            else:
+                raise FileNotFoundError()
+        except Exception:
+            _MANHATTAN_ZONES = {4, 12, 13, 24, 41, 42, 43, 45, 48, 50, 68, 74, 75, 79, 87, 88, 90, 100, 103, 104, 105, 107, 113, 114, 116, 120, 125, 127, 128, 137, 140, 141, 142, 143, 144, 148, 151, 152, 153, 158, 161, 162, 163, 164, 166, 170, 186, 194, 202, 209, 211, 224, 229, 230, 231, 232, 233, 234, 236, 237, 238, 239, 243, 244, 246, 249, 261, 262, 263}
+            _MANHATTAN_SOUTH_96 = {4, 12, 13, 24, 43, 45, 48, 50, 68, 79, 87, 88, 90, 100, 103, 104, 105, 107, 113, 114, 125, 137, 140, 141, 142, 143, 144, 148, 151, 158, 161, 162, 163, 164, 170, 186, 194, 209, 211, 224, 229, 230, 231, 232, 233, 234, 236, 237, 238, 239, 246, 249, 261, 262, 263}
+        _ZONES_CACHED = True
+    return _MANHATTAN_ZONES, _MANHATTAN_SOUTH_96
+
+def _add_domain_features(df):
+    """
+    Add domain-specific fare components estimated solely from non-leaky input features.
+    - est_base_fare: Flat $70 for JFK-Manhattan trips, else $3.00 + $3.50 * distance
+    - est_congestion_surcharge: $2.50 if pickup or dropoff is in Manhattan south of 96
+    - est_extra: $1.00 overnight surcharge, $2.50 rush hour surcharge ($5.00 for JFK trips)
+    - est_airport_fee: $2.50 for LaGuardia / JFK pickups
+    - est_improvement_surcharge: $1.00 flat
+    - est_mta_tax: $0.50 flat
+    - est_total_fare_without_tolls: sum of the above
+    """
+    manhattan_zones, manhattan_south_96 = _get_zone_mappings()
+    
+    pu = df["PULocationID"]
+    do = df["DOLocationID"]
+    dist = df["trip_distance"]
+    hour = df["pickup_hour"]
+    day = df["day_of_week"]
+    
+    # 1. JFK Flat Rate check
+    is_pu_jfk = pu == 132
+    is_do_jfk = do == 132
+    is_pu_man = pu.isin(manhattan_zones)
+    is_do_man = do.isin(manhattan_zones)
+    is_jfk_trip = (is_pu_jfk & is_do_man) | (is_do_jfk & is_pu_man)
+    
+    # Base fare
+    df["est_base_fare"] = np.where(is_jfk_trip, 70.0, 3.0 + 3.50 * dist)
+    
+    # 2. Congestion Surcharge
+    is_pu_congestion = pu.isin(manhattan_south_96)
+    is_do_congestion = do.isin(manhattan_south_96)
+    df["est_congestion_surcharge"] = np.where(is_pu_congestion | is_do_congestion, 2.50, 0.0)
+    
+    # 3. Extra (Night / Rush Hour)
+    is_overnight = (hour >= 20) | (hour < 6)
+    is_rush = (day < 5) & (hour >= 16) & (hour < 20)
+    
+    extra = np.zeros(len(df))
+    extra[is_overnight] += 1.0
+    extra[is_rush] += np.where(is_jfk_trip[is_rush], 5.0, 2.5)
+    df["est_extra"] = extra
+    
+    # 4. Airport Fee ($2.50 access fee for JFK/LGA pickups + EWR/LGA surcharges)
+    airport_fee = np.zeros(len(df))
+    # $2.50 access fee for pickups at JFK (132) and LGA (138)
+    airport_fee[pu.isin({132, 138})] += 2.50
+    # $5.00 surcharge for LaGuardia trips (pickup or dropoff)
+    airport_fee[pu.isin({138}) | do.isin({138})] += 5.00
+    # $20.00 surcharge for Newark trips
+    airport_fee[pu.isin({1}) | do.isin({1})] += 20.00
+    df["est_airport_fee"] = airport_fee
+    
+    # 5. Fixed surcharges
+    df["est_improvement_surcharge"] = 1.0
+    df["est_mta_tax"] = 0.50
+    
+    # 6. Sum total estimate (without tolls)
+    df["est_total_fare_without_tolls"] = (
+        df["est_base_fare"] + 
+        df["est_congestion_surcharge"] + 
+        df["est_extra"] + 
+        df["est_airport_fee"] + 
+        df["est_improvement_surcharge"] + 
+        df["est_mta_tax"]
+    )
+    
+    return df
+
 # ── Interaction features ──────────────────────────────────────────────────────
 
 def _add_distance_x_time_of_day(df):
@@ -222,9 +317,10 @@ FEATURE_CREATION_STEPS = [
     _add_day_of_week,              # 2. extract day of week
     _add_is_weekend,               # 3. weekend flag   (needs day_of_week)
     _add_time_of_day_bucket,       # 4. rush/off-peak/overnight + is_rush_hour (needs pickup_hour)
-    # _add_distance_x_time_of_day,   # 5. interaction    (needs trip_distance, time_of_day_bucket)
-    # _add_pickup_zone_x_hour,       # 6. interaction    (needs PULocationID, pickup_hour)
-    # _add_distance_x_rush_hour,     # 7. interaction    (needs trip_distance, is_rush_hour) #----------------------------------------------> לסדר את זה אחר כך' ולהתייעץ על זה עם וויקרם
+    _add_domain_features,          # 5. domain-based TLC surcharges (JFK, LGA, EWR, congestion)
+    # _add_distance_x_time_of_day,   # 6. interaction    (needs trip_distance, time_of_day_bucket)
+    # _add_pickup_zone_x_hour,       # 7. interaction    (needs PULocationID, pickup_hour)
+    # _add_distance_x_rush_hour,     # 8. interaction    (needs trip_distance, is_rush_hour) #----------------------------------------------> לסדר את זה אחר כך' ולהתייעץ על זה עם וויקרם
 ]
 
 FEATURE_TRANSFORMATION_STEPS = [
@@ -278,19 +374,20 @@ def run_baseline_pipeline(df, scaler=None, is_training=True, scaler_save_path=No
             print(f"  Dropped {n_before - len(df):,} rows with non-positive total fare amount")
             
 
+    scale_cols = [c for c in SCALE_FEATURES if c in df.columns]
     if is_training:
         scaler_created = False
         if scaler is None:
             scaler = StandardScaler()
             scaler_created = True
-        df[SCALE_FEATURES] = scaler.fit_transform(df[SCALE_FEATURES])
+        df[scale_cols] = scaler.fit_transform(df[scale_cols])
         
         if scaler_created and scaler_save_path:
             Path(scaler_save_path).parent.mkdir(parents=True, exist_ok=True)
             joblib.dump(scaler, scaler_save_path)
-            print(f"  Saved baseline scaler → {scaler_save_path}")
+            print(f"  Saved baseline scaler -> {scaler_save_path}")
     else:
-        df[SCALE_FEATURES] = scaler.transform(df[SCALE_FEATURES])
+        df[scale_cols] = scaler.transform(df[scale_cols])
 
     keep = BASELINE_FEATURE_COLS + [TARGET_COL]
     return df[keep], scaler
@@ -350,19 +447,20 @@ def run_feature_pipeline(df, scaler=None, is_training=True, custom_creation_step
         df = step(df)
 
     # ── Step 4: Feature scaling ────────────────────────────────────────────────
+    scale_cols = [c for c in SCALE_FEATURES if c in df.columns]
     if is_training:
         scaler_created = False
         if scaler is None:
             scaler = StandardScaler()
             scaler_created = True
-        df[SCALE_FEATURES] = scaler.fit_transform(df[SCALE_FEATURES])
+        df[scale_cols] = scaler.fit_transform(df[scale_cols])
         
         if scaler_created and scaler_save_path:
             Path(scaler_save_path).parent.mkdir(parents=True, exist_ok=True)
             joblib.dump(scaler, scaler_save_path)
-            print(f"  Saved feature scaler → {scaler_save_path}")
+            print(f"  Saved feature scaler -> {scaler_save_path}")
     else:
-        df[SCALE_FEATURES] = scaler.transform(df[SCALE_FEATURES])
+        df[scale_cols] = scaler.transform(df[scale_cols])
 
     # ── Step 5: Drop leaky and consumed columns ────────────────────────────────
     cols_to_drop = LEAKY_COLUMNS + _DATETIME_COLS_TO_DROP 

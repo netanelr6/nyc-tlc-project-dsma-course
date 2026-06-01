@@ -78,10 +78,10 @@ def fill_non_critical_nulls(df):
         n_null = df[col].isna().sum()
         if n_null > 0:
             df[col] = df[col].fillna(fill_value)
-            filled_report.append(f"{col} ({n_null:,} → {fill_value!r})")
+            filled_report.append(f"{col} ({n_null:,} -> {fill_value!r})")
 
     if filled_report:
-        print(f"  fill_non_critical_nulls : filled — {', '.join(filled_report)}")
+        print(f"  fill_non_critical_nulls : filled - {', '.join(filled_report)}")
     else:
         print(f"  fill_non_critical_nulls : no nulls to fill")
     return df
@@ -104,13 +104,13 @@ def drop_pre_december_2023(df):
 
 def select_relevant_columns(df):
     """
-    Retain only the columns required for the ETA prediction problem.
+    Retain only the columns required for the Trip Fare prediction problem.
     All other columns are dropped as irrelevant.
     """
     cols = [c for c in RELEVANT_COLUMNS if c in df.columns]
     dropped_cols = [c for c in df.columns if c not in cols]
     if dropped_cols:
-        print(f"  select_relevant_columns : dropped {len(dropped_cols)} columns — {dropped_cols}")
+        print(f"  select_relevant_columns : dropped {len(dropped_cols)} columns - {dropped_cols}")
     return df[cols]
 
 def drop_remaining_nulls(df):
@@ -232,7 +232,7 @@ def clean_parquet(DF_not_clean, output_path=None, sample_size=None, is_train=Tru
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         df_clean.to_parquet(output_path, index=False)
-        print(f"  Saved cleaned file → {output_path}\n")
+        print(f"  Saved cleaned file -> {output_path}\n")
 
     return df_clean
 

@@ -98,7 +98,10 @@ def _add_trip_duration_minutes(df):
 
 def _add_total_fare_amount(df):
     """Compute the target: total fare amount (total_amount – tip_amount)."""
-    df[TARGET_COL] = df["total_amount"] - df["tip_amount"]
+    if "total_amount" in df.columns and "tip_amount" in df.columns:
+        df[TARGET_COL] = df["total_amount"] - df["tip_amount"]
+    else:
+        df[TARGET_COL] = 0.0
     return df 
 
 

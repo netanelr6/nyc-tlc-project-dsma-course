@@ -20,8 +20,20 @@ This module demonstrates two key payoffs of a modular pipeline:
      you direct feedback on whether your feature work paid off.
 """
 
+import sys
 import numpy as np
 import pandas as pd
+
+# Choose matplotlib backend safely
+try:
+    if 'ipykernel' not in sys.modules:
+        import tkinter
+        root = tkinter.Tk()
+        root.destroy()
+except Exception:
+    import matplotlib
+    matplotlib.use('Agg')
+
 import matplotlib.pyplot as plt
 from pathlib import Path
 

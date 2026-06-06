@@ -5,11 +5,54 @@ A thin, reusable wrapper around W&B that keeps all tracking logic out of
 pipeline.py. Handles connectivity issues gracefully, supporting offline runs
 and showing clear color-coded console logs in case of success or connection failures.
 """
-
+import os
 import wandb
 import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
+from dotenv import load_dotenv
+# Load environment variables from a local .env file
+load_dotenv()
+
+
+def configure_wandb():
+    # If WANDB_MODE is already configured, do nothing
+    if "WANDB_MODE" in os.environ:
+        return
+
+    # If WANDB_API_KEY is present, log in automatically
+    if os.getenv("WANDB_API_KEY"):
+        return
+
+    import sys
+    is_jupyter = "ipykernel" in sys.modules
+    is_interactive = sys.stdout.isatty() and sys.stdin.isatty()
+
+    if not (is_jupyter or is_interactive):
+        # Non-interactive, default to disabled to prevent blocking
+        os.environ["WANDB_MODE"] = "disabled"
+        return
+
+    print("\n" + "=" * 60)
+    print(" Weights & Biases (W&B) API Key is missing.")
+    print(" Choose how to proceed:")
+    print("  (1) Proceed with manual W&B login (standard W&B menu)")
+    print("  (2) Skip W&B completely (Run fully local/offline, no W&B tracking)")
+    print("=" * 60)
+
+    try:
+        choice = input("Enter choice [1-2] (default: 2): ").strip()
+    except (KeyboardInterrupt, EOFError):
+        choice = "2"
+
+    if not choice:
+        choice = "2"
+
+    if choice == "2":
+        os.environ["WANDB_MODE"] = "disabled"
+        print("\033[93m[W&B] Weights & Biases is disabled. Running fully offline/locally.\033[0m\n")
+    else:
+        print("\033[92m[W&B] Proceeding with standard W&B manual login...\033[0m\n")
 
 
 class ExperimentTracker:
@@ -17,18 +60,29 @@ class ExperimentTracker:
     Wraps a single W&B run.
     """
 
-    def __init__(self, project, run_name=None, tags=None, config=None):
+    def __init__(self, project, entity=None, run_name=None, tags=None, config=None):
         self.enabled = False
         self.project = project
         self.run = None
 
+        configure_wandb()
+        if os.environ.get("WANDB_MODE") == "disabled":
+            self.enabled = False
+            return
+
         try:
-            # Check if user is authenticated/logged in. Prompts interactively if no key is configured.
-            if not wandb.login(anonymous="never", relogin=False):
-                raise ValueError("Not logged in to W&B.")
+            # If an API key is present in environment, log in automatically
+            api_key = os.getenv("WANDB_API_KEY")
+            if api_key:
+                wandb.login(key=api_key)
+            else:
+                # Check if user is authenticated/logged in. Prompts interactively if no key is configured.
+                if not wandb.login(anonymous="never", relogin=False):
+                    raise ValueError("Not logged in to W&B.")
 
             self.run = wandb.init(
                 project = project,
+                entity  = entity,
                 id      = wandb.util.generate_id(),
                 name    = run_name,
                 tags    = tags or [],
@@ -156,6 +210,7 @@ def log_monthly_drift_run(
     mae:           float,
     drift_report:  pd.DataFrame,
     project:       str,
+    entity:        str   = None,
     mae_delta:     float = None,
     n_trips:       int   = None,
     label_drift:   dict  = None,
@@ -174,17 +229,28 @@ def log_monthly_drift_run(
         mae          : model MAE on this month's data
         drift_report : DataFrame from build_drift_report()
         project      : W&B project name
+        entity       : W&B entity name (optional)
         mae_delta    : MAE increase vs. reference month (optional)
         n_trips      : number of trips evaluated (optional)
         label_drift  : dict from detect_label_drift() (optional)
     """
+    configure_wandb()
+    if os.environ.get("WANDB_MODE") == "disabled":
+        return
+
     try:
-        # Check if user is authenticated/logged in. Prompts interactively if no key is configured.
-        if not wandb.login(anonymous="never", relogin=False):
-            raise ValueError("Not logged in to W&B.")
+        # If an API key is present in environment, log in automatically
+        api_key = os.getenv("WANDB_API_KEY")
+        if api_key:
+            wandb.login(key=api_key)
+        else:
+            # Check if user is authenticated/logged in. Prompts interactively if no key is configured.
+            if not wandb.login(anonymous="never", relogin=False):
+                raise ValueError("Not logged in to W&B.")
 
         run = wandb.init(
             project = project,
+            entity  = entity,
             id      = wandb.util.generate_id(),
             name    = f"drift-eval-{month_label}",
             tags    = ["drift-monitoring", month_label],

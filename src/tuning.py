@@ -30,10 +30,13 @@ import joblib
 import numpy as np
 from pathlib                     import Path
 from sklearn.ensemble            import RandomForestRegressor, HistGradientBoostingRegressor
-from sklearn.model_selection     import cross_val_score
+from sklearn.model_selection     import cross_val_score, cross_validate
 from sklearn.base                import clone
 
-from src.models       import save_model, CANDIDATE_MODELS
+from src.models       import save_model, CANDIDATE_MODELS, run_live_timer
+from src.experiment_tracking import configure_wandb
+import threading
+import sys
 
 
 # ── Phase 1: Random search config ─────────────────────────────────────────────
@@ -103,6 +106,7 @@ def _build_model_from_config(cfg):
             max_depth        = cfg.get("max_depth", None),
             min_samples_leaf = int(cfg.get("min_samples_leaf", 50)),
             max_features     = cfg.get("max_features", "sqrt"),
+            max_samples      = 0.1,
             n_jobs           = -1,
             random_state     = 42,
         )
@@ -127,7 +131,7 @@ def _make_train_fn(X_train, y_train):
     The closure captures X_train / y_train so the agent can call it
     without arguments.  Each invocation:
       1. Reads hyperparameters from wandb.config
-      2. Runs 3-fold CV and computes mean MAE
+      2. Runs 3-fold CV and computes mean MAE and RMSE using cross_validate
       3. Logs mae and rmse to W&B
     """
     def train_fn():
@@ -135,20 +139,17 @@ def _make_train_fn(X_train, y_train):
             cfg     = run.config
             model   = _build_model_from_config(cfg)
 
-            mae_scores  = cross_val_score(
+            scores = cross_validate(
                 model, X_train, y_train,
                 cv      = 3,
-                scoring = "neg_mean_absolute_error",
-                n_jobs  = -1,
+                scoring = {
+                    "mae": "neg_mean_absolute_error",
+                    "mse": "neg_mean_squared_error"
+                },
+                n_jobs  = None,
             )
-            mse_scores  = cross_val_score(
-                model, X_train, y_train,
-                cv      = 3,
-                scoring = "neg_mean_squared_error",
-                n_jobs  = -1,
-            )
-            mae  = float(-mae_scores.mean())
-            rmse = float((-mse_scores.mean()) ** 0.5)
+            mae  = float(-scores["test_mae"].mean())
+            rmse = float((-scores["test_mse"].mean()) ** 0.5)
 
             run.log({"mae": mae, "rmse": rmse})
 
@@ -179,7 +180,7 @@ def _generate_combinations(parameters):
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def run_wandb_sweep(X_train, y_train, sweep_config: dict,
-                    project: str, n_runs: int = 15):
+                    project: str, entity: str = None, n_runs: int = 15):
     """
     Register a W&B sweep, run `n_runs` trials, and return the best config.
     If W&B is offline or not logged in, falls back to local tuning using cross-validation.
@@ -197,19 +198,23 @@ def run_wandb_sweep(X_train, y_train, sweep_config: dict,
         best_config (dict): hyperparameter dict of the best trial
         best_mae    (float): CV MAE of the best trial
     """
+    import os
+    configure_wandb()
     is_logged_in = False
-    try:
-        is_logged_in = wandb.login(anonymous="never", relogin=False)
-    except Exception:
-        is_logged_in = False
+    if os.environ.get("WANDB_MODE") != "disabled":
+        try:
+            is_logged_in = wandb.login(anonymous="never", relogin=False)
+        except Exception:
+            is_logged_in = False
 
     if is_logged_in:
-        sweep_id = wandb.sweep(sweep_config, project=project)
+        sweep_id = wandb.sweep(sweep_config, project=project, entity=entity)
         train_fn = _make_train_fn(X_train, y_train)
         wandb.agent(sweep_id, function=train_fn, count=n_runs)
 
         api  = wandb.Api()
-        runs = api.runs(project, filters={"sweep": sweep_id})
+        path = f"{entity}/{project}" if entity else project
+        runs = api.runs(path, filters={"sweep": sweep_id})
         completed = [r for r in runs if "mae" in r.summary]
 
         if not completed:
@@ -233,19 +238,42 @@ def run_wandb_sweep(X_train, y_train, sweep_config: dict,
         best_config = None
         best_mae = float("inf")
         
+        import time
         print(f"  Running local search over {len(selected_combs)} configurations...")
         for i, comb in enumerate(selected_combs, 1):
             model = _build_model_from_config(comb)
             try:
-                # We import cross_val_score inside to avoid name conflicts, though it is imported globally
+                t0 = time.time()
+                is_tty = sys.stdout.isatty()
+                if is_tty:
+                    stop_event = threading.Event()
+                    timer_thread = threading.Thread(
+                        target=run_live_timer,
+                        args=(stop_event, f"    Trial {i}/{len(selected_combs)} ({comb.get('model_type')})")
+                    )
+                    timer_thread.daemon = True
+                    timer_thread.start()
+                else:
+                    print(f"    Trial {i}/{len(selected_combs)}: {comb} ...")
+
                 mae_scores = cross_val_score(
                     model, X_train, y_train,
                     cv=3,
                     scoring="neg_mean_absolute_error",
-                    n_jobs=-1
+                    n_jobs=None
                 )
                 mae = float(-mae_scores.mean())
-                print(f"    Trial {i}/{len(selected_combs)}: {comb} -> MAE: ${mae:.2f}")
+                duration = time.time() - t0
+
+                if is_tty:
+                    stop_event.set()
+                    timer_thread.join()
+                    sys.stdout.write(f"\r\033[33m    [Duration] Trial {i}/{len(selected_combs)} finished in {duration:.2f}s -> MAE: ${mae:.2f}\033[0m\n")
+                    print(f"      Config: {comb}")
+                    sys.stdout.flush()
+                else:
+                    print(f"\033[33m    [Duration] Trial {i}/{len(selected_combs)} finished in {duration:.2f}s -> MAE: ${mae:.2f}\033[0m")
+
                 if mae < best_mae:
                     best_mae = mae
                     best_config = comb
@@ -272,8 +300,30 @@ def retrain_best_model(best_config: dict, X_train, y_train,
     model = _build_model_from_config(best_config)
     model_type = best_config.get("model_type", "random_forest")
 
-    print(f"  Retraining best {model_type} on full training set ...")
+    import time
+    t0 = time.time()
+    is_tty = sys.stdout.isatty()
+    if is_tty:
+        stop_event = threading.Event()
+        timer_thread = threading.Thread(
+            target=run_live_timer,
+            args=(stop_event, f"  Retraining best {model_type} on full training set")
+        )
+        timer_thread.daemon = True
+        timer_thread.start()
+    else:
+        print(f"  Retraining best {model_type} on full training set...")
+
     model.fit(X_train, y_train)
+    duration = time.time() - t0
+
+    if is_tty:
+        stop_event.set()
+        timer_thread.join()
+        sys.stdout.write(f"\r\033[33m  [Duration] Finished retraining best {model_type} in {duration:.2f}s\033[0m\n")
+        sys.stdout.flush()
+    else:
+        print(f"\033[33m  [Duration] Finished retraining best {model_type} in {duration:.2f}s\033[0m")
 
     Path(model_dir).mkdir(parents=True, exist_ok=True)
     save_path = save_model(model, f"tuned_{model_type}", model_dir)

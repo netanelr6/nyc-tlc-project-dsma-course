@@ -1,0 +1,14 @@
+wandb_version: 1
+
+learning_rate:
+  value: 0.01
+max_depth:
+  value: 5
+max_features:
+  value: log2
+min_samples_leaf:
+  value: 50
+model_type:
+  value: random_forest
+n_estimators:
+  value: 150

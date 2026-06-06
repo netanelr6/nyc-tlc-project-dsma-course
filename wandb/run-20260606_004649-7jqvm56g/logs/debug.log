@@ -1,0 +1,25 @@
+2026-06-06 00:46:49,913 INFO    Thread-365 (_run_job):34368 [wandb_setup.py:_flush():81] Current SDK version is 0.27.0
+2026-06-06 00:46:49,913 INFO    Thread-365 (_run_job):34368 [wandb_setup.py:_flush():81] Configure stats pid to 34368
+2026-06-06 00:46:49,913 INFO    Thread-365 (_run_job):34368 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-06-06 00:46:49,914 INFO    Thread-365 (_run_job):34368 [wandb_init.py:setup_run_log_directory():723] Logging user logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260606_004649-7jqvm56g\logs\debug.log
+2026-06-06 00:46:49,914 INFO    Thread-365 (_run_job):34368 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260606_004649-7jqvm56g\logs\debug-internal.log
+2026-06-06 00:46:49,914 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():851] calling init triggers
+2026-06-06 00:46:49,914 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():856] wandb.init called with sweep_config: {'learning_rate': 0.1, 'max_depth': 15, 'max_features': 'log2', 'min_samples_leaf': 10, 'model_type': 'gradient_boosting', 'n_estimators': 150}
+config: {'_wandb': {}}
+2026-06-06 00:46:49,914 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():899] starting backend
+2026-06-06 00:46:52,163 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():914] sending inform_init request
+2026-06-06 00:46:52,599 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():919] backend started and connected
+2026-06-06 00:46:52,600 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_config_callback():1332] config_cb None None {'learning_rate': 0.1, 'max_depth': 15, 'max_features': 'log2', 'min_samples_leaf': 10, 'model_type': 'gradient_boosting', 'n_estimators': 150}
+2026-06-06 00:46:52,601 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():989] updated telemetry
+2026-06-06 00:46:52,844 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():1012] communicating run to backend with 90.0 second timeout
+2026-06-06 00:46:53,302 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():1057] starting run threads in backend
+2026-06-06 00:46:53,570 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_console_start():2509] atexit reg
+2026-06-06 00:46:53,570 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_redirect():2359] redirect: wrap_raw
+2026-06-06 00:46:53,571 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_redirect():2428] Wrapping output streams.
+2026-06-06 00:46:53,571 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_redirect():2451] Redirects installed.
+2026-06-06 00:46:53,574 INFO    Thread-365 (_run_job):34368 [wandb_init.py:init():1095] run started, returning control to user process
+2026-06-06 00:50:42,659 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_finish():2271] finishing run dsma_fit_happens/dsma-nyc-tlc-taxi/7jqvm56g
+2026-06-06 00:50:42,660 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_atexit_cleanup():2476] got exitcode: 0
+2026-06-06 00:50:42,661 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_restore():2458] restore
+2026-06-06 00:50:42,662 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_restore():2464] restore done
+2026-06-06 00:50:43,859 INFO    Thread-365 (_run_job):34368 [wandb_run.py:_footer_sync_info():3877] logging synced files

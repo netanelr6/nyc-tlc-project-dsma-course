@@ -15,6 +15,21 @@ That's it — train_all_models() will pick it up automatically.
 
 import joblib
 from pathlib import Path
+import threading
+import sys
+import time
+
+def run_live_timer(stop_event, message):
+    if not sys.stdout.isatty():
+        return
+    if len(message) > 60:
+        message = message[:57] + "..."
+    start_time = time.time()
+    while not stop_event.is_set():
+        elapsed = time.time() - start_time
+        sys.stdout.write(f"\r  {message} ... [Elapsed: {elapsed:.1f}s]")
+        sys.stdout.flush()
+        time.sleep(0.5)
 
 from sklearn.linear_model    import LinearRegression
 from sklearn.ensemble        import RandomForestRegressor, HistGradientBoostingRegressor  # noqa: F401
@@ -86,12 +101,31 @@ def train_all_models(X_train, y_train, model_dir):
     models  = get_candidate_models()
     trained = {}
 
+    import time
     for name, model in models.items():
-        print(f"  Training {name} ...", end=" ", flush=True)
+        t0 = time.time()
+        is_tty = sys.stdout.isatty()
+        if is_tty:
+            stop_event = threading.Event()
+            timer_thread = threading.Thread(target=run_live_timer, args=(stop_event, f"Training {name}"))
+            timer_thread.daemon = True
+            timer_thread.start()
+        else:
+            print(f"  Training {name} ...")
+
         model.fit(X_train, y_train)
+        duration = time.time() - t0
+
+        if is_tty:
+            stop_event.set()
+            timer_thread.join()
+            sys.stdout.write(f"\r\033[33m  [Duration] Finished training {name} in {duration:.2f}s\033[0m\n")
+            sys.stdout.flush()
+        else:
+            print(f"\033[33m  [Duration] Finished training {name} in {duration:.2f}s\033[0m")
+
         save_model(model, name, model_dir)
         trained[name] = model
-        print("done")
 
     return trained
 

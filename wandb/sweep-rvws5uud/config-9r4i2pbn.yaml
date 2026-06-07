@@ -1,0 +1,32 @@
+wandb_version: 1
+
+alpha:
+  value: 1
+fit_intercept:
+  value: true
+learning_rate:
+  value: 0.1
+max_depth:
+  value: 10
+max_features:
+  value: log2
+min_samples_leaf:
+  value: 50
+model_type:
+  value: svm
+n_estimators:
+  value: 150
+nn_activation:
+  value: relu
+nn_epochs:
+  value: 5
+nn_hidden_layers:
+  value:
+  - 32
+  - 16
+nn_learning_rate:
+  value: 0.01
+svm_c:
+  value: 1
+svm_epsilon:
+  value: 0

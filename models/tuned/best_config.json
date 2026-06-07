@@ -1,0 +1,6 @@
+{
+    "max_depth": 15,
+    "model_type": "random_forest",
+    "n_estimators": 200,
+    "min_samples_leaf": 50
+}

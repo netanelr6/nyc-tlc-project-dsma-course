@@ -100,6 +100,9 @@ WANDB_ENTITY  = "dsma_fit_happens"
 TUNING_SAMPLE_SIZE = 2_500_000
 WANDB_MAX_TABLE_ROWS = 50_000
 
+EVIDENTLY_DRIFT_REF_LIMIT = 100_000
+EVIDENTLY_CONCEPT_REF_LIMIT = 50_000
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -567,6 +570,8 @@ def run_act4(
     drift_raw_parquet=DRIFT_RAW_PARQUET,
     wandb_project=WANDB_PROJECT,
     wandb_entity=WANDB_ENTITY,
+    evidently_drift_ref_limit=EVIDENTLY_DRIFT_REF_LIMIT,
+    evidently_concept_ref_limit=EVIDENTLY_CONCEPT_REF_LIMIT,
 ):
     """
     Act 4 — Productionize Model
@@ -654,6 +659,9 @@ def run_act4(
 
     ref_eng_df = X_train_eng.copy()
     ref_eng_df[TARGET_COL] = y_train_eng.values
+    if evidently_drift_ref_limit is not None and len(ref_eng_df) > evidently_drift_ref_limit:
+        print(f"  Subsampling Evidently reference dataset from {len(ref_eng_df):,} to {evidently_drift_ref_limit:,} rows for MLOps compliance...")
+        ref_eng_df = ref_eng_df.sample(evidently_drift_ref_limit, random_state=DRIFT_SEED).reset_index(drop=True)
 
     # Run Evidently report
     print("\n  Running Evidently dataset + label drift report ...")
@@ -678,6 +686,9 @@ def run_act4(
     ref_perf_df = X_test_eng.copy()
     ref_perf_df[TARGET_COL]    = y_test_eng.values
     ref_perf_df["prediction"]  = y_pred_tuned
+    if evidently_concept_ref_limit is not None and len(ref_perf_df) > evidently_concept_ref_limit:
+        print(f"  Subsampling Evidently concept drift reference dataset from {len(ref_perf_df):,} to {evidently_concept_ref_limit:,} rows for MLOps compliance...")
+        ref_perf_df = ref_perf_df.sample(evidently_concept_ref_limit, random_state=DRIFT_SEED).reset_index(drop=True)
 
     cur_perf_df = drift_eval_eng.copy()
     cur_perf_df["prediction"]  = tuned_champion_model.predict(drift_eval_eng.drop(columns=[TARGET_COL]))
@@ -823,30 +834,46 @@ def run_pipeline(
     sample_size=None,
     tuning_sample_size=TUNING_SAMPLE_SIZE,
     wandb_max_table_rows=WANDB_MAX_TABLE_ROWS,
+    act=None,
+    evidently_drift_ref_limit=EVIDENTLY_DRIFT_REF_LIMIT,
+    evidently_concept_ref_limit=EVIDENTLY_CONCEPT_REF_LIMIT,
 ):
     configure_wandb()
-    # # Act 1 — Data Prep
-    # run_act1(sample_size = sample_size)
+    
+    if act is None or act == 1:
+        # Act 1 — Data Prep
+        run_act1(sample_size = sample_size)
 
-    # # Act 2 — Model Building & Tuning
-    # best_grid_config, winning_family, engineered_results = run_act2(
-    #     wandb_project  = wandb_project,
-    #     wandb_entity   = wandb_entity,
-    #     tuning_sample_size = tuning_sample_size,
-    # )
+    if act is None or act == 2:
+        # Act 2 — Model Building & Tuning
+        best_grid_config, winning_family, engineered_results = run_act2(
+            wandb_project  = wandb_project,
+            wandb_entity   = wandb_entity,
+            tuning_sample_size = tuning_sample_size,
+        )
 
-    # # Act 3 — Model Evaluation & Experiments
-    # y_pred_tuned = run_act3(
-    #     wandb_project        = wandb_project,
-    #     wandb_entity         = wandb_entity,
-    #     wandb_max_table_rows = wandb_max_table_rows,
-    # )
+    if act is None or act == 3:
+        # Act 3 — Model Evaluation & Experiments
+        y_pred_tuned = run_act3(
+            wandb_project        = wandb_project,
+            wandb_entity         = wandb_entity,
+            wandb_max_table_rows = wandb_max_table_rows,
+        )
 
-    # Act 4 — Productionize Model
-    run_act4(
-        wandb_project  = wandb_project,
-        wandb_entity   = wandb_entity,
-    )
+    if act is None or act == 4:
+        # Act 4 — Productionize Model
+        run_act4(
+            wandb_project              = wandb_project,
+            wandb_entity               = wandb_entity,
+            evidently_drift_ref_limit  = evidently_drift_ref_limit,
+            evidently_concept_ref_limit = evidently_concept_ref_limit,
+        )
+
+
+def _int_or_none(value):
+    if value is None or str(value).lower() in ("none", "null", "", "empty"):
+        return None
+    return int(value)
 
 
 if __name__ == "__main__":
@@ -855,18 +882,27 @@ if __name__ == "__main__":
                         help="W&B project name to log runs into")
     parser.add_argument("--wandb-entity", default=WANDB_ENTITY,
                         help="W&B entity namespace to log runs into")
-    parser.add_argument("--sample-size", type=int, default=None,
-                        help="Sample size for training and testing raw data (for smoke testing)")
+    parser.add_argument("--sample-size", type=_int_or_none, default=None,
+                        help="Sample size for training and testing raw data (for smoke testing, or 'None')")
     parser.add_argument("--tuning-sample-size", type=int, default=TUNING_SAMPLE_SIZE,
                         help="Sample size for hyperparameter tuning sweeps (stratified by hour and day)")
     parser.add_argument("--wandb-max-table-rows", type=int, default=WANDB_MAX_TABLE_ROWS,
                         help="Maximum rows to log to W&B interactive tables (subsampled if exceeded)")
+    parser.add_argument("--act", type=int, choices=[1, 2, 3, 4], default=None,
+                        help="Run only a specific Act (1, 2, 3, or 4). If not specified, runs the entire pipeline.")
+    parser.add_argument("--evidently-drift-ref-limit", type=_int_or_none, default=EVIDENTLY_DRIFT_REF_LIMIT,
+                        help="Subsample limit for reference training set in Evidently dataset drift detection (or 'None')")
+    parser.add_argument("--evidently-concept-ref-limit", type=_int_or_none, default=EVIDENTLY_CONCEPT_REF_LIMIT,
+                        help="Subsample limit for reference test set in Evidently concept drift detection (or 'None')")
     args = parser.parse_args()
     
     run_pipeline(
-        wandb_project        = args.wandb_project,
-        wandb_entity         = args.wandb_entity,
-        sample_size          = args.sample_size,
-        tuning_sample_size   = args.tuning_sample_size,
-        wandb_max_table_rows = args.wandb_max_table_rows,
+        wandb_project               = args.wandb_project,
+        wandb_entity                = args.wandb_entity,
+        sample_size                 = args.sample_size,
+        tuning_sample_size          = args.tuning_sample_size,
+        wandb_max_table_rows        = args.wandb_max_table_rows,
+        act                         = args.act,
+        evidently_drift_ref_limit   = args.evidently_drift_ref_limit,
+        evidently_concept_ref_limit = args.evidently_concept_ref_limit,
     )

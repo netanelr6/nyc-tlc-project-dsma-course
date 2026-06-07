@@ -1,0 +1,19 @@
+{"time":"2026-06-07T21:22:21.030426+03:00","level":"INFO","msg":"wandb-core"}
+{"time":"2026-06-07T21:22:21.0322433+03:00","level":"INFO","msg":"stream: starting","core version":"0.27.0"}
+{"time":"2026-06-07T21:22:22.3243134+03:00","level":"INFO","msg":"stream: created new stream","id":"pr8shhyy"}
+{"time":"2026-06-07T21:22:22.3243134+03:00","level":"INFO","msg":"handler: started"}
+{"time":"2026-06-07T21:22:22.3254974+03:00","level":"INFO","msg":"stream: started"}
+{"time":"2026-06-07T21:22:22.3254974+03:00","level":"INFO","msg":"sender: started"}
+{"time":"2026-06-07T21:22:22.3254974+03:00","level":"INFO","msg":"writer: started","stream_id":"pr8shhyy"}
+{"time":"2026-06-07T21:22:28.5826188+03:00","level":"INFO","msg":"filestream: sending request","total_files":0,"uploaded_len":1}
+{"time":"2026-06-07T21:22:29.0998044+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-07T21:22:43.5827528+03:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":0,"events_lines":2,"uploaded_len":1}
+{"time":"2026-06-07T21:22:43.875631+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-07T21:22:52.5704537+03:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-06-07T21:22:52.5704537+03:00","level":"INFO","msg":"filestream: sending request","total_files":2,"history_offset":0,"history_lines":1,"uploaded_len":2,"complete":true,"exit_code":0}
+{"time":"2026-06-07T21:22:52.942009+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-07T21:22:52.9439825+03:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-06-07T21:22:52.953283+03:00","level":"INFO","msg":"stream: finishing up"}
+{"time":"2026-06-07T21:22:52.953283+03:00","level":"INFO","msg":"handler: closed"}
+{"time":"2026-06-07T21:22:52.9537898+03:00","level":"INFO","msg":"sender: closed"}
+{"time":"2026-06-07T21:22:52.9537898+03:00","level":"INFO","msg":"stream: all finished"}

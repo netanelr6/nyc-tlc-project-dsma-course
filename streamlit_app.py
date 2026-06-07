@@ -162,6 +162,8 @@ def load_assets():
 lookup_df, scaler, model = load_assets()
 
 # Format zone names for UI selection dropdowns
+lookup_df["Borough"] = lookup_df["Borough"].fillna("Unknown")
+lookup_df["Zone"]    = lookup_df["Zone"].fillna("Unknown")
 lookup_df["DropdownName"] = lookup_df["Borough"] + " - " + lookup_df["Zone"]
 zone_options = lookup_df.sort_values("DropdownName").to_dict("records")
 
@@ -321,7 +323,7 @@ with col2:
         layers=[arc_layer, scatter_layer],
         initial_view_state=view_state,
         tooltip={"html": "<b>{type}:</b> {name}"},
-        map_style="mapbox://styles/mapbox/dark-v10"
+        map_style=pdk.map_styles.CARTO_DARK
     )
     
     st.pydeck_chart(r)

@@ -1,0 +1,17 @@
+{
+  "os": "Windows-10-10.0.26200-SP0",
+  "python": "CPython 3.11.15",
+  "startedAt": "2026-06-07T19:13:35.654783Z",
+  "program": "c:\\Users\\netan\\Documents\\GitHub\\nyc-tlc-project-dsma-course\\pipeline.py",
+  "codePath": "pipeline.py",
+  "codePathLocal": "pipeline.py",
+  "git": {
+    "remote": "https://github.com/netanelr6/nyc-tlc-project-dsma-course.git",
+    "commit": "70b76eaad77a1a052af086738b3c66ff30dad705"
+  },
+  "email": "netanelr6@gmail.com",
+  "root": "C:\\Users\\netan\\Documents\\GitHub\\nyc-tlc-project-dsma-course",
+  "host": "LAPTOP-OO0RQV50",
+  "executable": "C:\\Users\\netan\\anaconda3\\envs\\ny_taxis\\python.exe",
+  "writerId": "qnh64hc1cbq49wnfx0mmha2j06fyvtdq"
+}

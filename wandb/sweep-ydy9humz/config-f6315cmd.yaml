@@ -1,0 +1,14 @@
+wandb_version: 1
+
+learning_rate:
+  value: 0.2
+max_depth:
+  value: 20
+max_features:
+  value: sqrt
+min_samples_leaf:
+  value: 100
+model_type:
+  value: gradient_boosting
+n_estimators:
+  value: 50

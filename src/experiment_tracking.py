@@ -289,3 +289,35 @@ def log_monthly_drift_run(
         print(f"\033[92m[W&B] Successfully logged monthly drift run for {month_label}.\033[0m")
     except Exception as e:
         print(f"\033[91m[W&B] Was supposed to be logged to W&B, but a key was not provided or valid. Here is the result:\nError: {e}\nLocal summary for {month_label}: MAE={mae:.4f}, n_trips={n_trips}\033[0m")
+
+
+def log_eval_run(model_name, metrics, config, group, project, entity=None):
+    """
+    Log a single model evaluation run to W&B under a specific group.
+    """
+    configure_wandb()
+    if os.environ.get("WANDB_MODE") == "disabled":
+        return
+
+    try:
+        api_key = os.getenv("WANDB_API_KEY")
+        if api_key:
+            wandb.login(key=api_key)
+        else:
+            if not wandb.login(anonymous="never", relogin=False):
+                raise ValueError("Not logged in to W&B.")
+
+        run = wandb.init(
+            project = project,
+            entity  = entity,
+            group   = group,
+            name    = f"{group}-{model_name}",
+            config  = config or {},
+            job_type= "eval",
+            reinit  = True,
+        )
+        run.log(metrics)
+        run.finish()
+        print(f"\033[92m[W&B] Successfully logged {group}-{model_name} evaluation run.\033[0m")
+    except Exception as e:
+        print(f"\033[91m[W&B] Failed to log {group}-{model_name} evaluation run: {e}\033[0m")

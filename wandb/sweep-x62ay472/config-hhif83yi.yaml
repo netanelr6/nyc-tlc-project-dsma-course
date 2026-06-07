@@ -1,0 +1,28 @@
+wandb_version: 1
+
+alpha:
+  value: 0.1
+fit_intercept:
+  value: true
+learning_rate:
+  value: 0.05
+max_depth:
+  value: 20
+max_features:
+  value: sqrt
+min_samples_leaf:
+  value: 100
+model_type:
+  value: neural_network
+n_estimators:
+  value: 100
+nn_activation:
+  value: relu
+nn_epochs:
+  value: 5
+nn_hidden_layers:
+  value:
+  - 32
+  - 16
+nn_learning_rate:
+  value: 0.01

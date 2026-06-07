@@ -1,0 +1,24 @@
+2026-06-06 12:57:05,205 INFO    MainThread:8388 [wandb_setup.py:_flush():81] Current SDK version is 0.27.0
+2026-06-06 12:57:05,206 INFO    MainThread:8388 [wandb_setup.py:_flush():81] Configure stats pid to 8388
+2026-06-06 12:57:05,206 INFO    MainThread:8388 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-06-06 12:57:05,207 INFO    MainThread:8388 [wandb_init.py:setup_run_log_directory():723] Logging user logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260606_125705-gzit0pml\logs\debug.log
+2026-06-06 12:57:05,207 INFO    MainThread:8388 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260606_125705-gzit0pml\logs\debug-internal.log
+2026-06-06 12:57:05,207 INFO    MainThread:8388 [wandb_init.py:init():851] calling init triggers
+2026-06-06 12:57:05,207 INFO    MainThread:8388 [wandb_init.py:init():856] wandb.init called with sweep_config: {}
+config: {'features': 'engineered', '_wandb': {}}
+2026-06-06 12:57:05,207 INFO    MainThread:8388 [wandb_init.py:init():899] starting backend
+2026-06-06 12:57:07,788 INFO    MainThread:8388 [wandb_init.py:init():914] sending inform_init request
+2026-06-06 12:57:08,409 INFO    MainThread:8388 [wandb_init.py:init():919] backend started and connected
+2026-06-06 12:57:08,458 INFO    MainThread:8388 [wandb_init.py:init():989] updated telemetry
+2026-06-06 12:57:08,677 INFO    MainThread:8388 [wandb_init.py:init():1012] communicating run to backend with 90.0 second timeout
+2026-06-06 12:57:09,205 INFO    MainThread:8388 [wandb_init.py:init():1057] starting run threads in backend
+2026-06-06 12:57:09,400 INFO    MainThread:8388 [wandb_run.py:_console_start():2509] atexit reg
+2026-06-06 12:57:09,401 INFO    MainThread:8388 [wandb_run.py:_redirect():2359] redirect: wrap_raw
+2026-06-06 12:57:09,401 INFO    MainThread:8388 [wandb_run.py:_redirect():2428] Wrapping output streams.
+2026-06-06 12:57:09,401 INFO    MainThread:8388 [wandb_run.py:_redirect():2451] Redirects installed.
+2026-06-06 12:57:09,405 INFO    MainThread:8388 [wandb_init.py:init():1095] run started, returning control to user process
+2026-06-06 12:57:09,406 INFO    MainThread:8388 [wandb_run.py:_finish():2271] finishing run dsma_fit_happens/dsma-nyc-tlc-taxi/gzit0pml
+2026-06-06 12:57:09,407 INFO    MainThread:8388 [wandb_run.py:_atexit_cleanup():2476] got exitcode: 0
+2026-06-06 12:57:09,408 INFO    MainThread:8388 [wandb_run.py:_restore():2458] restore
+2026-06-06 12:57:09,408 INFO    MainThread:8388 [wandb_run.py:_restore():2464] restore done
+2026-06-06 12:57:10,591 INFO    MainThread:8388 [wandb_run.py:_footer_sync_info():3877] logging synced files

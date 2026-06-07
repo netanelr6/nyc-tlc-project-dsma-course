@@ -50,9 +50,11 @@ from src.cleaning                 import clean_parquet, clean_dataframe
 from src.features                 import run_feature_pipeline, run_baseline_pipeline, TARGET_COL
 from src.models                   import train_all_models, load_model, CANDIDATE_MODELS
 from src.evaluation               import evaluate_all_models, select_champion, plot_feature_importance
-from src.experiment_tracking      import ExperimentTracker, log_monthly_drift_run, configure_wandb
+from src.experiment_tracking      import (ExperimentTracker, log_monthly_drift_run,
+                                          configure_wandb, log_eval_run)
 from src.tuning                   import (RANDOM_SEARCH_CONFIG, GRID_SEARCH_CONFIGS,
-                                          run_wandb_sweep, retrain_best_model)
+                                          run_wandb_sweep, retrain_best_model,
+                                          get_stratified_tuning_sample)
 # from src.error_analysis           import run_error_analysis
 # from src.drift_detection          import (build_drift_report, detect_label_drift,
 #                                           detect_concept_drift, plot_feature_distributions,
@@ -92,9 +94,11 @@ SCALER_SAVE_PATH_ENGINEERD    = "data/feature_stores/engineered_scaler.pkl"
 
 WANDB_PROJECT = "dsma-nyc-tlc-taxi"
 WANDB_ENTITY  = "dsma_fit_happens"
+TUNING_SAMPLE_SIZE = 2_500_000
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
 
 def _print_header(title):
     print("\n" + "=" * 60)
@@ -250,7 +254,7 @@ def run_act1(sample_size=None):
 
 # ── Act 2 ─────────────────────────────────────────────────────────────────────
 
-def run_act2(wandb_project, wandb_entity):
+def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
     """
     Act 2 — Model Building & Tuning
     - Steps 3 & 4: Model Training and Baseline/Engineered Evaluations
@@ -269,18 +273,28 @@ def run_act2(wandb_project, wandb_entity):
     eng_test       = pd.read_parquet(ENGINEERED_TEST_PARQUET)
     print(f"\033[33m  [Duration] Loaded feature sets in {time.time() - t0:.2f}s\033[0m")
 
-    # ── Experiment A: Baseline Models
-    print("\n--- Training Baseline Models ---")
-    t0 = time.time()
-    X_train_base = baseline_train.drop(columns=[TARGET_COL])
-    y_train_base = baseline_train[TARGET_COL]
-    train_all_models(X_train_base, y_train_base, MODEL_DIR_BASELINE)
-
-    X_test_base = baseline_test.drop(columns=[TARGET_COL])
-    y_test_base = baseline_test[TARGET_COL]
-    print("\nBaseline model results:")
-    baseline_results = evaluate_all_models(X_test_base, y_test_base, MODEL_DIR_BASELINE)
-    print(f"\033[33m  [Duration] Baseline models training & evaluation finished in {time.time() - t0:.2f}s\033[0m")
+    # ── Experiment A: Baseline Models (Commented out by request)
+    # print("\n--- Training Baseline Models ---")
+    # t0 = time.time()
+    # X_train_base = baseline_train.drop(columns=[TARGET_COL])
+    # y_train_base = baseline_train[TARGET_COL]
+    # train_all_models(X_train_base, y_train_base, MODEL_DIR_BASELINE)
+    #
+    # X_test_base = baseline_test.drop(columns=[TARGET_COL])
+    # y_test_base = baseline_test[TARGET_COL]
+    # print("\nBaseline model results:")
+    # baseline_results = evaluate_all_models(X_test_base, y_test_base, MODEL_DIR_BASELINE)
+    # print(f"\033[33m  [Duration] Baseline models training & evaluation finished in {time.time() - t0:.2f}s\033[0m")
+    #
+    # for _, row in baseline_results.iterrows():
+    #     log_eval_run(
+    #         model_name=row["model"],
+    #         metrics={"rmse": float(row["rmse"]), "mae": float(row["mae"]), "mape": float(row["mape"])},
+    #         config={"features": "baseline"},
+    #         group="baseline",
+    #         project=wandb_project,
+    #         entity=wandb_entity
+    #     )
 
     # ── Experiment B: Engineered Models
     print("\n--- Training Engineered Models ---")
@@ -295,24 +309,42 @@ def run_act2(wandb_project, wandb_entity):
     engineered_results = evaluate_all_models(X_test_eng, y_test_eng, MODEL_DIR_ENGINEERED)
     print(f"\033[33m  [Duration] Engineered models training & evaluation finished in {time.time() - t0:.2f}s\033[0m")
 
-    # ── Head-to-head Comparison
-    print("\n--- Head-to-Head Comparison ---")
-    comparison = _comparison_table(baseline_results, engineered_results)
-    best_model_row = comparison.loc[comparison["mae_improvement_%"].idxmax()]
-    print(f"\n  Largest gain : {best_model_row['model']} "
-          f"improved by {best_model_row['mae_improvement_%']:.1f}% with feature engineering")
+    for _, row in engineered_results.iterrows():
+        log_eval_run(
+            model_name=row["model"],
+            metrics={"rmse": float(row["rmse"]), "mae": float(row["mae"]), "mape": float(row["mape"])},
+            config={"features": "engineered"},
+            group="engineered",
+            project=wandb_project,
+            entity=wandb_entity
+        )
+
+    # ── Head-to-head Comparison (Commented out by request)
+    # print("\n--- Head-to-Head Comparison ---")
+    # comparison = _comparison_table(baseline_results, engineered_results)
+    # best_model_row = comparison.loc[comparison["mae_improvement_%"].idxmax()]
+    # print(f"\n  Largest gain : {best_model_row['model']} "
+    #       f"improved by {best_model_row['mae_improvement_%']:.1f}% with feature engineering")
 
     # ── Hyperparameter Tuning
     print("\n--- Hyperparameter Tuning Sweeps ---")
     t0 = time.time()
+    
+    # Perform Stratified Subsampling for sweeps
+    print(f"  Preparing stratified sample of {tuning_sample_size:,} rows for tuning sweeps...")
+    X_train_tuning, y_train_tuning = get_stratified_tuning_sample(
+        X_train_eng, y_train_eng, sample_size=tuning_sample_size, random_state=42
+    )
+    print(f"  Stratified sample ready: {len(X_train_tuning):,} rows.")
+
     print("  Phase 1 — Random Search (both model families, wide grid)")
     random_sweep_id, best_random_config, best_random_mae = run_wandb_sweep(
-        X_train      = X_train_eng,
-        y_train      = y_train_eng,
+        X_train      = X_train_tuning,
+        y_train      = y_train_tuning,
         sweep_config = RANDOM_SEARCH_CONFIG,
         project      = wandb_project,
         entity       = wandb_entity,
-        n_runs       = 5,
+        n_runs       = 12,
     )
     winning_family = best_random_config.get("model_type", "random_forest")
     print(f"\n  Random search complete. Best family: {winning_family}")
@@ -320,12 +352,12 @@ def run_act2(wandb_project, wandb_entity):
     print(f"\n  Phase 2 — Grid Search ({winning_family}, narrow grid, all combinations)")
     grid_config = GRID_SEARCH_CONFIGS[winning_family]
     grid_sweep_id, best_grid_config, best_grid_mae = run_wandb_sweep(
-        X_train      = X_train_eng,
-        y_train      = y_train_eng,
+        X_train      = X_train_tuning,
+        y_train      = y_train_tuning,
         sweep_config = grid_config,
         project      = wandb_project,
         entity       = wandb_entity,
-        n_runs       = 4,
+        n_runs       = 6,
     )
     print(f"\n  Grid search complete. Best config: {best_grid_config}")
 
@@ -708,7 +740,7 @@ def run_act3(best_grid_config, winning_family, engineered_results, wandb_project
 # ===================  Pipeline Orchestration  ============================  
 # =========================================================================  
 
-def run_pipeline(wandb_project=WANDB_PROJECT, wandb_entity=WANDB_ENTITY, sample_size=None):
+def run_pipeline(wandb_project=WANDB_PROJECT, wandb_entity=WANDB_ENTITY, sample_size=None, tuning_sample_size=TUNING_SAMPLE_SIZE):
     configure_wandb()
     # # Act 1 — Data Prep
     # run_act1(sample_size = sample_size)
@@ -717,6 +749,7 @@ def run_pipeline(wandb_project=WANDB_PROJECT, wandb_entity=WANDB_ENTITY, sample_
     best_grid_config, winning_family, engineered_results = run_act2(
         wandb_project  = wandb_project,
         wandb_entity   = wandb_entity,
+        tuning_sample_size = tuning_sample_size,
     )
 
     # # Act 3 — Model Evaluation & Experiments
@@ -745,10 +778,13 @@ if __name__ == "__main__":
                         help="W&B entity namespace to log runs into")
     parser.add_argument("--sample-size", type=int, default=None,
                         help="Sample size for training and testing raw data (for smoke testing)")
+    parser.add_argument("--tuning-sample-size", type=int, default=TUNING_SAMPLE_SIZE,
+                        help="Sample size for hyperparameter tuning sweeps (stratified by hour and day)")
     args = parser.parse_args()
     
     run_pipeline(
         wandb_project = args.wandb_project,
         wandb_entity  = args.wandb_entity,
         sample_size   = args.sample_size,
+        tuning_sample_size = args.tuning_sample_size,
     )

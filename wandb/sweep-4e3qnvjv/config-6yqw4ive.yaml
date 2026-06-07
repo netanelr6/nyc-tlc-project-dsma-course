@@ -1,0 +1,18 @@
+wandb_version: 1
+
+alpha:
+  value: 10
+fit_intercept:
+  value: false
+learning_rate:
+  value: 0.05
+max_depth:
+  value: 10
+max_features:
+  value: sqrt
+min_samples_leaf:
+  value: 10
+model_type:
+  value: linear_regression
+n_estimators:
+  value: 200

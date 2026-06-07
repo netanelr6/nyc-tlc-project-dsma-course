@@ -33,6 +33,8 @@ def run_live_timer(stop_event, message):
 
 from sklearn.linear_model    import LinearRegression
 from sklearn.ensemble        import RandomForestRegressor, HistGradientBoostingRegressor  # noqa: F401
+from sklearn.neural_network  import MLPRegressor
+from sklearn.svm             import LinearSVR
 from sklearn.base            import clone
 
 try:
@@ -69,6 +71,25 @@ CANDIDATE_MODELS = {
         learning_rate=0.1,
         min_samples_leaf=50,
         random_state=42,
+    ),
+
+    "neural_network": MLPRegressor(
+        hidden_layer_sizes=(32,),
+        activation="relu",
+        max_iter=5,
+        batch_size=16384,
+        learning_rate_init=0.001,
+        early_stopping=True,
+        random_state=42,
+    ),
+
+    "svm": LinearSVR(
+        C=1.0,
+        epsilon=0.1,
+        loss="squared_epsilon_insensitive",
+        dual=False,
+        random_state=42,
+        max_iter=2000,
     ),
 }
 
@@ -113,7 +134,20 @@ def train_all_models(X_train, y_train, model_dir):
         else:
             print(f"  Training {name} ...")
 
-        model.fit(X_train, y_train)
+        # Subsample neural network and SVM training data to prevent CPU slowdown on large datasets
+        if name == "neural_network" and len(X_train) > 100_000:
+            print(f"  [Info] Subsampling training data to 100,000 samples specifically for {name} to prevent CPU slowdown.")
+            X_tr = X_train.sample(n=100_000, random_state=42)
+            y_tr = y_train.loc[X_tr.index]
+        elif name == "svm" and len(X_train) > 2_500_000:
+            print(f"  [Info] Subsampling training data to 100,000 samples specifically for {name} to prevent CPU slowdown.")
+            X_tr = X_train.sample(n=100_000, random_state=42)
+            y_tr = y_train.loc[X_tr.index]
+        else:
+            X_tr = X_train
+            y_tr = y_train
+
+        model.fit(X_tr, y_tr)
         duration = time.time() - t0
 
         if is_tty:

@@ -28,10 +28,21 @@ Adding a new model family
 import wandb
 import joblib
 import numpy as np
+import pandas as pd
 from pathlib                     import Path
 from sklearn.ensemble            import RandomForestRegressor, HistGradientBoostingRegressor
+from sklearn.linear_model        import LinearRegression, Ridge
+from sklearn.neural_network      import MLPRegressor
+from sklearn.svm                 import LinearSVR
 from sklearn.model_selection     import cross_val_score, cross_validate
 from sklearn.base                import clone
+
+try:
+    from xgboost import XGBRegressor
+    _XGBOOST_AVAILABLE = True
+except ImportError:
+    _XGBOOST_AVAILABLE = False
+
 
 from src.models       import save_model, CANDIDATE_MODELS, run_live_timer
 from src.experiment_tracking import configure_wandb
@@ -39,24 +50,85 @@ import threading
 import sys
 
 
+def get_stratified_tuning_sample(X, y, sample_size=100000, random_state=42):
+    """
+    Select a representative subsample of the training data stratified by
+    pickup_hour and day_of_week to preserve temporal and traffic patterns.
+    """
+    if len(X) <= sample_size:
+        return X, y
+    
+    stratify_cols = []
+    for col in X.columns:
+        if "hour" in col or "day_of_week" in col:
+            if X[col].nunique() <= 24:
+                stratify_cols.append(col)
+                
+    if not stratify_cols:
+        print("  [Warning] No temporal features found for stratification. Falling back to simple random sampling.")
+        X_sample = X.sample(n=sample_size, random_state=random_state)
+        y_sample = y.loc[X_sample.index]
+        return X_sample, y_sample
+
+    frac = sample_size / len(X)
+    try:
+        sampled_indices = X.groupby(stratify_cols, group_keys=False).apply(
+            lambda g: g.sample(n=max(1, int(np.round(len(g) * frac))), random_state=random_state)
+        ).index
+        
+        if len(sampled_indices) > sample_size:
+            sampled_indices = pd.Index(sampled_indices).to_series().sample(n=sample_size, random_state=random_state)
+        elif len(sampled_indices) < sample_size:
+            extra_size = sample_size - len(sampled_indices)
+            remaining = X.index.difference(sampled_indices)
+            extra_indices = remaining.to_series().sample(n=extra_size, random_state=random_state)
+            sampled_indices = sampled_indices.union(extra_indices)
+            
+        X_sample = X.loc[sampled_indices]
+        y_sample = y.loc[sampled_indices]
+        return X_sample, y_sample
+    except Exception as e:
+        print(f"  [Warning] Stratified sampling failed ({e}). Falling back to simple random sampling.")
+        X_sample = X.sample(n=sample_size, random_state=random_state)
+        y_sample = y.loc[X_sample.index]
+        return X_sample, y_sample
+
+
+
+# ── Supported models list ─────────────────────────────────────────────────────
+
+supported_models = ["random_forest", "gradient_boosting", "linear_regression", "ridge", "neural_network", "svm"]
+if _XGBOOST_AVAILABLE:
+    supported_models.append("xgboost")
+
+
 # ── Phase 1: Random search config ─────────────────────────────────────────────
 #
-# Sweeps across BOTH model families in a single sweep run.
-# learning_rate is ignored when model_type == "random_forest".
-# max_features  is ignored when model_type == "gradient_boosting".
-# W&B samples parameter combinations at random — fast and effective for
-# the "weed out the field" phase.
+# Sweeps across all supported model families in a single sweep run.
+# Parameters that are not supported by a model family are ignored by its builder.
 
 RANDOM_SEARCH_CONFIG = {
     "method": "random",
     "metric": {"name": "mae", "goal": "minimize"},
     "parameters": {
-        "model_type":       {"values": ["random_forest", "gradient_boosting"]},
+        "model_type":       {"values": supported_models},
         "n_estimators":     {"values": [50, 100, 150, 200]},
         "max_depth":        {"values": [5, 10, 15, 20]},
         "min_samples_leaf": {"values": [10, 20, 50, 100]},
         "learning_rate":    {"values": [0.01, 0.05, 0.1, 0.2]},
         "max_features":     {"values": ["sqrt", "log2"]},
+        "alpha":            {"values": [0.01, 0.1, 1.0, 10.0]},
+        "fit_intercept":    {"values": [True, False]},
+        
+        # Neural Network (MLPRegressor) parameters
+        "nn_epochs":        {"values": [5, 10]},
+        "nn_activation":    {"values": ["relu"]},
+        "nn_hidden_layers": {"values": [[32], [50], [32, 16]]},
+        "nn_learning_rate": {"values": [0.001, 0.01]},
+
+        # SVM (LinearSVR) parameters
+        "svm_c":            {"values": [0.1, 1.0, 10.0]},
+        "svm_epsilon":      {"values": [0.0, 0.1, 0.2]},
     },
 }
 
@@ -89,7 +161,54 @@ GRID_SEARCH_CONFIGS = {
             "min_samples_leaf": {"values": [50]},
         },
     },
+    "linear_regression": {
+        "method": "grid",
+        "metric": {"name": "mae", "goal": "minimize"},
+        "parameters": {
+            "model_type":       {"value": "linear_regression"},
+            "fit_intercept":    {"values": [True, False]},
+        },
+    },
+    "ridge": {
+        "method": "grid",
+        "metric": {"name": "mae", "goal": "minimize"},
+        "parameters": {
+            "model_type":       {"value": "ridge"},
+            "alpha":            {"values": [0.1, 1.0, 10.0]},
+        },
+    },
+    "neural_network": {
+        "method": "grid",
+        "metric": {"name": "mae", "goal": "minimize"},
+        "parameters": {
+            "model_type":       {"value": "neural_network"},
+            "nn_epochs":        {"values": [10]},
+            "nn_activation":    {"values": ["relu"]},
+            "nn_hidden_layers": {"values": [[32]]},
+        },
+    },
+    "svm": {
+        "method": "grid",
+        "metric": {"name": "mae", "goal": "minimize"},
+        "parameters": {
+            "model_type":       {"value": "svm"},
+            "svm_c":            {"values": [0.1, 1.0]},
+            "svm_epsilon":      {"values": [0.1]},
+        },
+    },
 }
+
+if _XGBOOST_AVAILABLE:
+    GRID_SEARCH_CONFIGS["xgboost"] = {
+        "method": "grid",
+        "metric": {"name": "mae", "goal": "minimize"},
+        "parameters": {
+            "model_type":       {"value": "xgboost"},
+            "n_estimators":     {"values": [100, 200]},
+            "max_depth":        {"values": [5, 8]},
+            "learning_rate":    {"values": [0.05, 0.1]},
+        },
+    }
 
 # ── Model builder ─────────────────────────────────────────────────────────────
 
@@ -118,6 +237,46 @@ def _build_model_from_config(cfg):
             min_samples_leaf = int(cfg.get("min_samples_leaf", 50)),
             random_state     = 42,
         )
+    elif model_type == "xgboost":
+        if not _XGBOOST_AVAILABLE:
+            raise ImportError("xgboost is selected but not installed in the environment.")
+        return XGBRegressor(
+            n_estimators     = int(cfg.get("n_estimators", 100)),
+            max_depth        = int(cfg.get("max_depth", 5)),
+            learning_rate    = float(cfg.get("learning_rate", 0.1)),
+            n_jobs           = -1,
+            random_state     = 42,
+        )
+    elif model_type == "linear_regression":
+        return LinearRegression(
+            fit_intercept    = bool(cfg.get("fit_intercept", True))
+        )
+    elif model_type == "ridge":
+        return Ridge(
+            alpha            = float(cfg.get("alpha", 1.0)),
+            random_state     = 42,
+        )
+    elif model_type == "neural_network":
+        hidden_layers = tuple(cfg.get("nn_hidden_layers", [32]))
+        return MLPRegressor(
+            hidden_layer_sizes = hidden_layers,
+            activation         = cfg.get("nn_activation", "relu"),
+            max_iter           = int(cfg.get("nn_epochs", 5)),
+            learning_rate_init = float(cfg.get("nn_learning_rate", 0.001)),
+            solver             = "adam",
+            batch_size         = 16384,
+            early_stopping     = True,
+            random_state       = 42,
+        )
+    elif model_type == "svm":
+        return LinearSVR(
+            C            = float(cfg.get("svm_c", 1.0)),
+            epsilon      = float(cfg.get("svm_epsilon", 0.1)),
+            loss         = "squared_epsilon_insensitive",
+            dual         = False,
+            random_state = 42,
+            max_iter     = 2000,
+        )
     else:
         raise ValueError(f"Unknown model_type: {model_type!r}")
 
@@ -139,8 +298,19 @@ def _make_train_fn(X_train, y_train):
             cfg     = run.config
             model   = _build_model_from_config(cfg)
 
+            model_type = cfg.get("model_type", "random_forest")
+            if model_type == "neural_network" and len(X_train) > 100_000:
+                X_tr = X_train.sample(n=100_000, random_state=42)
+                y_tr = y_train.loc[X_tr.index]
+            elif model_type == "svm" and len(X_train) > 2_500_000:
+                X_tr = X_train.sample(n=2_500_000, random_state=42)
+                y_tr = y_train.loc[X_tr.index]
+            else:
+                X_tr = X_train
+                y_tr = y_train
+
             scores = cross_validate(
-                model, X_train, y_train,
+                model, X_tr, y_tr,
                 cv      = 3,
                 scoring = {
                     "mae": "neg_mean_absolute_error",
@@ -256,8 +426,19 @@ def run_wandb_sweep(X_train, y_train, sweep_config: dict,
                 else:
                     print(f"    Trial {i}/{len(selected_combs)}: {comb} ...")
 
+                model_type = comb.get("model_type")
+                if model_type == "neural_network" and len(X_train) > 100_000:
+                    X_tr = X_train.sample(n=100_000, random_state=42)
+                    y_tr = y_train.loc[X_tr.index]
+                elif model_type == "svm" and len(X_train) > 2_500_000:
+                    X_tr = X_train.sample(n=2_500_000, random_state=42)
+                    y_tr = y_train.loc[X_tr.index]
+                else:
+                    X_tr = X_train
+                    y_tr = y_train
+
                 mae_scores = cross_val_score(
-                    model, X_train, y_train,
+                    model, X_tr, y_tr,
                     cv=3,
                     scoring="neg_mean_absolute_error",
                     n_jobs=None
@@ -314,7 +495,19 @@ def retrain_best_model(best_config: dict, X_train, y_train,
     else:
         print(f"  Retraining best {model_type} on full training set...")
 
-    model.fit(X_train, y_train)
+    if model_type == "neural_network" and len(X_train) > 100_000:
+        print(f"  [Info] Subsampling training data to 100,000 samples specifically for {model_type} to prevent CPU slowdown.")
+        X_tr = X_train.sample(n=100_000, random_state=42)
+        y_tr = y_train.loc[X_tr.index]
+    elif model_type == "svm" and len(X_train) > 2_500_000:
+        print(f"  [Info] Subsampling training data to 2,500,000 samples specifically for {model_type} to prevent CPU slowdown.")
+        X_tr = X_train.sample(n=2_500_000, random_state=42)
+        y_tr = y_train.loc[X_tr.index]
+    else:
+        X_tr = X_train
+        y_tr = y_train
+
+    model.fit(X_tr, y_tr)
     duration = time.time() - t0
 
     if is_tty:

@@ -1,0 +1,25 @@
+2026-06-06 18:30:51,380 INFO    Thread-234 (_run_job):20696 [wandb_setup.py:_flush():81] Current SDK version is 0.27.0
+2026-06-06 18:30:51,380 INFO    Thread-234 (_run_job):20696 [wandb_setup.py:_flush():81] Configure stats pid to 20696
+2026-06-06 18:30:51,380 INFO    Thread-234 (_run_job):20696 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-06-06 18:30:51,381 INFO    Thread-234 (_run_job):20696 [wandb_init.py:setup_run_log_directory():723] Logging user logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260606_183051-klmzr04a\logs\debug.log
+2026-06-06 18:30:51,381 INFO    Thread-234 (_run_job):20696 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260606_183051-klmzr04a\logs\debug-internal.log
+2026-06-06 18:30:51,382 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():851] calling init triggers
+2026-06-06 18:30:51,382 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():856] wandb.init called with sweep_config: {'alpha': 1, 'fit_intercept': True, 'learning_rate': 0.05, 'max_depth': 5, 'max_features': 'log2', 'min_samples_leaf': 10, 'model_type': 'ridge', 'n_estimators': 150}
+config: {'_wandb': {}}
+2026-06-06 18:30:51,382 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():899] starting backend
+2026-06-06 18:30:53,631 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():914] sending inform_init request
+2026-06-06 18:30:54,043 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():919] backend started and connected
+2026-06-06 18:30:54,044 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_config_callback():1332] config_cb None None {'alpha': 1, 'fit_intercept': True, 'learning_rate': 0.05, 'max_depth': 5, 'max_features': 'log2', 'min_samples_leaf': 10, 'model_type': 'ridge', 'n_estimators': 150}
+2026-06-06 18:30:54,044 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():989] updated telemetry
+2026-06-06 18:30:54,089 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():1012] communicating run to backend with 90.0 second timeout
+2026-06-06 18:30:54,357 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():1057] starting run threads in backend
+2026-06-06 18:30:54,513 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_console_start():2509] atexit reg
+2026-06-06 18:30:54,513 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_redirect():2359] redirect: wrap_raw
+2026-06-06 18:30:54,513 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_redirect():2428] Wrapping output streams.
+2026-06-06 18:30:54,514 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_redirect():2451] Redirects installed.
+2026-06-06 18:30:54,515 INFO    Thread-234 (_run_job):20696 [wandb_init.py:init():1095] run started, returning control to user process
+2026-06-06 18:30:54,531 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_finish():2271] finishing run dsma_fit_happens/dsma-nyc-tlc-taxi/klmzr04a
+2026-06-06 18:30:54,532 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_atexit_cleanup():2476] got exitcode: 0
+2026-06-06 18:30:54,533 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_restore():2458] restore
+2026-06-06 18:30:54,533 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_restore():2464] restore done
+2026-06-06 18:30:55,952 INFO    Thread-234 (_run_job):20696 [wandb_run.py:_footer_sync_info():3877] logging synced files

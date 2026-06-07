@@ -1,0 +1,40 @@
+{
+  "os": "Windows-10-10.0.26200-SP0",
+  "python": "CPython 3.11.15",
+  "startedAt": "2026-06-06T16:43:34.914756Z",
+  "program": "c:\\Users\\netan\\Documents\\GitHub\\nyc-tlc-project-dsma-course\\pipeline.py",
+  "codePath": "pipeline.py",
+  "codePathLocal": "pipeline.py",
+  "git": {
+    "remote": "https://github.com/netanelr6/nyc-tlc-project-dsma-course.git",
+    "commit": "a4477b79c3d972e657b1a73862721c25c727ad5d"
+  },
+  "email": "netanelr6@gmail.com",
+  "root": "C:\\Users\\netan\\Documents\\GitHub\\nyc-tlc-project-dsma-course",
+  "host": "LAPTOP-OO0RQV50",
+  "executable": "C:\\Users\\netan\\anaconda3\\envs\\ny_taxis\\python.exe",
+  "cpu_count": 4,
+  "cpu_count_logical": 8,
+  "gpu": "NVIDIA GeForce GTX 1650 with Max-Q Design",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "1022450012160",
+      "used": "917654257664"
+    }
+  },
+  "memory": {
+    "total": "16968294400"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce GTX 1650 with Max-Q Design",
+      "memoryTotal": "4294967296",
+      "cudaCores": 1024,
+      "architecture": "Turing",
+      "uuid": "GPU-ec478a80-b329-102f-8955-8ed024fa382e"
+    }
+  ],
+  "cudaVersion": "13.2",
+  "writerId": "82iyyrtr821bzm6oeudxlhtc095m9fsy"
+}

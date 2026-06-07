@@ -27,6 +27,7 @@ Adding a new model family
 
 import wandb
 import joblib
+import json
 import numpy as np
 import pandas as pd
 from pathlib                     import Path
@@ -521,5 +522,10 @@ def retrain_best_model(best_config: dict, X_train, y_train,
     Path(model_dir).mkdir(parents=True, exist_ok=True)
     save_path = save_model(model, f"tuned_{model_type}", model_dir)
     print(f"  Tuned model saved -> {save_path}")
+
+    config_path = Path(model_dir) / "best_config.json"
+    with open(config_path, "w") as f:
+        json.dump(best_config, f, indent=4)
+    print(f"  Best config saved -> {config_path}")
 
     return model

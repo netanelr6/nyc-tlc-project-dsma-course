@@ -73,7 +73,7 @@ st.markdown("""
         margin: 10px 0;
     }
 </style>
-""", unsafe_allowed_html=True)
+""", unsafe_allow_html=True)
 
 # ── Coordinate Dictionary for NYC Taxi Zones ──────────────────────────
 # Approximate Latitude/Longitude mapping for popular NYC taxi zones
@@ -167,13 +167,13 @@ zone_options = lookup_df.sort_values("DropdownName").to_dict("records")
 
 # ── Main Layout ───────────────────────────────────────────────────────────────
 
-st.markdown('<div class="gradient-text">NYC Taxi Fare Predictor</div>', unsafe_allowed_html=True)
-st.markdown('<div class="subheader-text">Instantly estimate yellow cab fares across New York City using GBDT machine learning</div>', unsafe_allowed_html=True)
+st.markdown('<div class="gradient-text">NYC Taxi Fare Predictor</div>', unsafe_allow_html=True)
+st.markdown('<div class="subheader-text">Instantly estimate yellow cab fares across New York City using GBDT machine learning</div>', unsafe_allow_html=True)
 
 col1, col2 = st.columns([1, 1.2], gap="large")
 
 with col1:
-    st.markdown('<div class="metric-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
     st.subheader("📍 Journey Details")
     
     # Pickup selection
@@ -226,10 +226,10 @@ with col1:
     }
     day_of_week = day_map[day_name]
     
-    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 with col2:
-    st.markdown('<div class="metric-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
     st.subheader("💵 Estimated Fare")
     
     # Construct raw dataframe for feature extraction
@@ -260,14 +260,14 @@ with col2:
         # Guard against illogical predictions
         predicted_fare = max(3.0, predicted_fare)
         
-    st.markdown(f'<div class="predicted-fare">${predicted_fare:.2f}</div>', unsafe_allowed_html=True)
+    st.markdown(f'<div class="predicted-fare">${predicted_fare:.2f}</div>', unsafe_allow_html=True)
     st.caption("Estimated total fare (excluding tolls & voluntary tips). Base rate starts at $3.00.")
     
-    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
     st.write("")
     
     # ── Pydeck 3D Map Overlay ─────────────────────────────────────────────────
-    st.markdown('<div class="metric-card">', unsafe_allowed_html=True)
+    st.markdown('<div class="metric-card">', unsafe_allow_html=True)
     st.subheader("🗺️ Journey Visualisation")
     
     pu_lat, pu_lon = get_coordinates(pickup_selection["LocationID"], pickup_selection["Borough"])
@@ -325,4 +325,4 @@ with col2:
     )
     
     st.pydeck_chart(r)
-    st.markdown('</div>', unsafe_allowed_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)

@@ -1,0 +1,25 @@
+2026-06-07 17:48:58,494 INFO    MainThread:33824 [wandb_setup.py:_flush():81] Current SDK version is 0.27.0
+2026-06-07 17:48:58,495 INFO    MainThread:33824 [wandb_setup.py:_flush():81] Configure stats pid to 33824
+2026-06-07 17:48:58,495 INFO    MainThread:33824 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-06-07 17:48:58,495 INFO    MainThread:33824 [wandb_init.py:setup_run_log_directory():723] Logging user logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260607_174858-zpbpjjfy\logs\debug.log
+2026-06-07 17:48:58,496 INFO    MainThread:33824 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260607_174858-zpbpjjfy\logs\debug-internal.log
+2026-06-07 17:48:58,496 INFO    MainThread:33824 [wandb_init.py:init():851] calling init triggers
+2026-06-07 17:48:58,496 INFO    MainThread:33824 [wandb_init.py:init():856] wandb.init called with sweep_config: {}
+config: {'champion_model': 'gradient_boosting', '_wandb': {}}
+2026-06-07 17:48:58,496 INFO    MainThread:33824 [wandb_init.py:init():899] starting backend
+2026-06-07 17:49:00,987 INFO    MainThread:33824 [wandb_init.py:init():914] sending inform_init request
+2026-06-07 17:49:03,704 INFO    MainThread:33824 [wandb_init.py:init():919] backend started and connected
+2026-06-07 17:49:03,706 INFO    MainThread:33824 [wandb_init.py:init():989] updated telemetry
+2026-06-07 17:49:03,771 INFO    MainThread:33824 [wandb_init.py:init():1012] communicating run to backend with 90.0 second timeout
+2026-06-07 17:49:04,086 INFO    MainThread:33824 [wandb_init.py:init():1057] starting run threads in backend
+2026-06-07 17:49:04,795 INFO    MainThread:33824 [wandb_run.py:_console_start():2509] atexit reg
+2026-06-07 17:49:04,795 INFO    MainThread:33824 [wandb_run.py:_redirect():2359] redirect: wrap_raw
+2026-06-07 17:49:04,797 INFO    MainThread:33824 [wandb_run.py:_redirect():2428] Wrapping output streams.
+2026-06-07 17:49:04,797 INFO    MainThread:33824 [wandb_run.py:_redirect():2451] Redirects installed.
+2026-06-07 17:49:04,802 INFO    MainThread:33824 [wandb_init.py:init():1095] run started, returning control to user process
+2026-06-07 17:49:07,687 INFO    MainThread:33824 [wandb_run.py:_config_callback():1332] config_cb None None {'_wandb': {'code_path': 'source-dsma-nyc-tlc-taxi-pipeline.py'}}
+2026-06-07 17:49:07,689 INFO    MainThread:33824 [wandb_run.py:_finish():2271] finishing run dsma_fit_happens/dsma-nyc-tlc-taxi/zpbpjjfy
+2026-06-07 17:49:07,690 INFO    MainThread:33824 [wandb_run.py:_atexit_cleanup():2476] got exitcode: 0
+2026-06-07 17:49:07,691 INFO    MainThread:33824 [wandb_run.py:_restore():2458] restore
+2026-06-07 17:49:07,691 INFO    MainThread:33824 [wandb_run.py:_restore():2464] restore done
+2026-06-07 17:49:10,818 INFO    MainThread:33824 [wandb_run.py:_footer_sync_info():3877] logging synced files

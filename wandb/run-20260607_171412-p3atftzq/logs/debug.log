@@ -1,0 +1,21 @@
+2026-06-07 17:14:12,770 INFO    MainThread:32460 [wandb_init.py:setup_run_log_directory():723] Logging user logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260607_171412-p3atftzq\logs\debug.log
+2026-06-07 17:14:12,772 INFO    MainThread:32460 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to C:\Users\netan\Documents\GitHub\nyc-tlc-project-dsma-course\wandb\run-20260607_171412-p3atftzq\logs\debug-internal.log
+2026-06-07 17:14:12,773 INFO    MainThread:32460 [wandb_init.py:init():851] calling init triggers
+2026-06-07 17:14:12,773 INFO    MainThread:32460 [wandb_init.py:init():856] wandb.init called with sweep_config: {}
+config: {'model': 'gradient_boosting', 'n_test_samples': 3475226, '_wandb': {}}
+2026-06-07 17:14:12,775 INFO    MainThread:32460 [wandb_init.py:init():899] starting backend
+2026-06-07 17:14:12,776 INFO    MainThread:32460 [wandb_init.py:init():914] sending inform_init request
+2026-06-07 17:14:14,619 INFO    MainThread:32460 [wandb_init.py:init():919] backend started and connected
+2026-06-07 17:14:14,621 INFO    MainThread:32460 [wandb_init.py:init():989] updated telemetry
+2026-06-07 17:14:14,692 INFO    MainThread:32460 [wandb_init.py:init():1012] communicating run to backend with 90.0 second timeout
+2026-06-07 17:14:15,271 INFO    MainThread:32460 [wandb_init.py:init():1057] starting run threads in backend
+2026-06-07 17:14:15,714 INFO    MainThread:32460 [wandb_run.py:_console_start():2509] atexit reg
+2026-06-07 17:14:15,714 INFO    MainThread:32460 [wandb_run.py:_redirect():2359] redirect: wrap_raw
+2026-06-07 17:14:15,715 INFO    MainThread:32460 [wandb_run.py:_redirect():2428] Wrapping output streams.
+2026-06-07 17:14:15,716 INFO    MainThread:32460 [wandb_run.py:_redirect():2451] Redirects installed.
+2026-06-07 17:14:15,719 INFO    MainThread:32460 [wandb_init.py:init():1095] run started, returning control to user process
+2026-06-07 17:15:15,930 INFO    MainThread:32460 [wandb_run.py:_finish():2271] finishing run dsma_fit_happens/dsma-nyc-tlc-taxi/p3atftzq
+2026-06-07 17:15:15,931 INFO    MainThread:32460 [wandb_run.py:_atexit_cleanup():2476] got exitcode: 0
+2026-06-07 17:15:15,931 INFO    MainThread:32460 [wandb_run.py:_restore():2458] restore
+2026-06-07 17:15:15,931 INFO    MainThread:32460 [wandb_run.py:_restore():2464] restore done
+2026-06-07 17:15:18,144 INFO    MainThread:32460 [wandb_run.py:_footer_sync_info():3877] logging synced files

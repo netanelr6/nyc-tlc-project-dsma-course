@@ -112,9 +112,12 @@ class ExperimentTracker:
 
     # ── Interactive table ─────────────────────────────────────────────────────
 
-    def log_table(self, df: pd.DataFrame, table_name: str):
+    def log_table(self, df: pd.DataFrame, table_name: str, max_rows: int = None):
         """Log a pandas DataFrame as an interactive W&B table."""
         if self.enabled and self.run is not None:
+            if max_rows is not None and len(df) > max_rows:
+                print(f"  [W&B Info] Table '{table_name}' has {len(df):,} rows. Subsampling to {max_rows:,} rows for W&B performance.")
+                df = df.sample(n=max_rows, random_state=42)
             table = wandb.Table(dataframe=df.reset_index(drop=True))
             self.run.log({table_name: table})
 

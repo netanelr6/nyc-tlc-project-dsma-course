@@ -1,0 +1,114 @@
+Assignment Choice 2 – Trip Fare Estimation 
+Description: 
+You are a newly recruited data science team member for Gett, New York City branch, and the 
+company is undergoing a challenging period since it only recently entered the ride-sharing market in 
+NYC and is still “learning” the market and how it functions in order to tailor its business operations 
+effectively to the people and userbase in NYC. 
+In your first week at work, your manager called you in for an urgent meeting with the Marketplace 
+team head. Once you went into the meeting room with them and sat down, your manager said 
+“Hope you took your DSMA course during your Bachelor’s degree at BGU, you’re going to need to 
+use everything that you learned to get us through this difficult period” and handed you a 3 page 
+document that lists the business question which the team urgently needs investigated. It reads as 
+follows: 
+What is the trip’s total fare amount estimate we must project to the app’s user?  If we overcharge, 
+Gett’s passengers won’t book the ride. If we undercharge, our drivers will protest.  
+a. Input – PULocationID, DOLocationID, trip_distance, Time of day, Day of week 
+b. Output (target variable) – total_fare_amount (total_amount – tip_amount) 
+c. The challenge: unlike the trip_duration prediction problem, total_amount prediction 
+is highly sensitive to all the values that are added up for the fare. This problem will 
+require a significant amount of feature engineering to get high accuracy and low 
+error rates. 
+i. Extensive Feature Engineering - You will need to think how to model all the 
+different values that are a part of the total_fare_amount before the trip has 
+occurred.  
+1. Go through the data dictionary for the problem to understand how 
+total_amount is calculated.  
+2. Understand that none of the money related features from the 
+dataset are provided as part of the input since the business usecase 
+that you are building here is trip fare estimate – which means you 
+inform the users of the Gett Application how much their trip is likely 
+to cost before they press the “book taxi” button. (you’re only 
+providing an estimate) 
+3. Therefore, all the features like whether there is a 
+congestion_surcharge, etc.  as part of the total_amount will have to 
+be calculated using other data that is available to you (mentioned in 
+a. Input above) at inference time as part of your feature 
+engineering.  
+4. You may also need to use external data that is not present within the 
+dataset (by explore the NYC TLC website in order to understand how 
+surcharges are calculated, etc.) 
+5. Approximate those values and use the values in the dataset to see if 
+your logic at approximating those values are working well. Try 
+searching for fare rules in the NYC TLC website and build the feature 
+engineering pipe accordingly (domain – based features)   
+ii. Handle outliers – you need to be thorough with your data cleaning and 
+validation before you begin working with the data. (check for errors like 
+negative fares)   
+d. Build a simple Streamlit UI for the purpose of showcasing how your final model(s) 
+predict the total_fare_amount of a trip – have a few input boxes for each of the 
+inputs and a button which says “book taxi”. The UI should display a map that shows a 
+point to point trip with an overlay displaying how much the customer will probably 
+be charged for their trip.  
+e. Data use constraints: You may use the data over 2024 and 2025 as you wish, but 
+reserve 2026 data specifically for evaluating and demonstrating how your model 
+performs. (Do not include 2026 data in your training set.)  
+ 
+After staring at this document with beads of sweat forming on your forehead, you turn to leave the 
+meeting room, when the Marketplace team head laughs and remarks “Thankfully, the municipality of 
+New York has open sourced its historical data on traditional taxi rides in the city. There should be 
+more than enough data in those data dumps that we can analyse to answer these questions.” You 
+run quickly to your laptop and run a search online to find these datasets and discover the following:   
+Dataset: 
+NYC – TLC (year of 2024 and 2025, and JAN + FEB of 2026) – can be downloaded from here - 
+https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page 
+Use only the “Yellow Taxi Trip Records” datasets from 2024, 2025 and the first two months of 2026. 
+Data Dictionary: 
+Can be found here - 
+https://www.nyc.gov/assets/tlc/downloads/pdf/data_dictionary_trip_records_yellow.pdf  
+And the Taxi Zone Lookup Table can be found here: 
+https://d37ci6vzurychx.cloudfront.net/misc/taxi_zone_lookup.csv  
+Use of AI: 
+Permitted, but please put in a little effort to understand the code that is generated (and to check if it 
+is correct / useful for what you wish you achieve) before you use it in the project. 
+ 
+Evaluation Criteria: 
+1. Completeness (20%) – the extent to which the machine learning pipeline was built for 
+answering this business question. 
+2. Effectiveness of EDA (20%) – How well you explored the data to find the initial insights in the 
+data that allowed you to work effectively with the data. 
+3. Innovation (20%) – be creative with your feature engineering and model development 
+4. Modularity of the Code (20%) – Make the codebase that you build for this assignment 
+modular and readable. One of the goals of this course is to highlight how modularity of the 
+codebase makes it much simpler to maintain and work with (especially when working in 
+teams). 
+5. Performance (10%) – how well your model(s) work over the test set (you score 10/10 here if 
+you beat the lecturer’s model). 
+6. Use of Experiment Tracking (10%) – In the course, we use Weights & Biases (wandb) for the 
+purpose of experiment tracking. I strongly encourage using experiment tracking when 
+running your experiments (for the purpose of hyperparameter tuning using sweeps, for 
+running evaluations of your models before and after you make changes to your features in 
+order to see what works, and to also work with model and data versioning (as we will see in 
+Lecture 4))   
+Assignment Submission format: 
+You are expected to submit 3 files: 
+1. A python notebook that you developed for performing the EDA that the lecturer can run 
+over the training data (2024 + 2025 combined)  
+2. A zip folder containing the entire codebase you developed for the machine learning pipeline 
+which the lecturer can execute that will run everything needed for the pipeline to work from 
+start to finish. Training data – 2024 + 2025, Test Data – Jan + Feb of 2026 
+ (include a text file containing instructions to execute the code if you feel it’s needed)  
+ 
+3. A PDF report summarizing the following: 
+a. Your key findings from the EDA connecting it to the business problem that you are 
+trying to solve for. (e.g., Airport rides seem to have a bump in total_amount since 
+the fare there is fixed.)  
+b. A short explanation of the final selected set of features that you engineered   
+c. A short explanation of how you performed model selection and hyperparameter 
+tuning 
+d. A short explanation of the model improvement loops that you did (error analysis of 
+your model + drift detection and mitigation)  
+e. A link to your experiment tracking page on wandb (within the same wandb team that 
+you have joined for the course. You can open a new project for yourself.)  
+ 
+ 
+ 

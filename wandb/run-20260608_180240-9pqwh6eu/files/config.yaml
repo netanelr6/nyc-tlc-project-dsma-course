@@ -1,0 +1,75 @@
+_wandb:
+    value:
+        cli_version: 0.27.0
+        e:
+            08kkyrje5yjczsqf47h4n5vuroaimllh:
+                codePath: pipeline.py
+                codePathLocal: pipeline.py
+                cpu_count: 10
+                cpu_count_logical: 12
+                disk:
+                    /:
+                        total: "1022844989440"
+                        used: "882482425856"
+                email: netanelr6@gmail.com
+                executable: C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Scripts\python.exe
+                git:
+                    commit: 5ec6e74717918dddb222b7d62ab08b904b47e087
+                    remote: https://github.com/netanelr6/nyc-tlc-project-dsma-course
+                host: netanelr_PC
+                memory:
+                    total: "16852705280"
+                os: Windows-11-10.0.26200-SP0
+                program: c:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\pipeline.py
+                python: CPython 3.13.0
+                root: C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA
+                startedAt: "2026-06-08T15:02:40.092362Z"
+                writerId: 08kkyrje5yjczsqf47h4n5vuroaimllh
+        m: []
+        python_version: 3.13.0
+        t:
+            "1":
+                - 5
+                - 53
+            "2":
+                - 5
+                - 53
+            "3":
+                - 2
+                - 14
+            "4": 3.13.0
+            "5": 0.27.0
+            "8":
+                - 3
+            "12": 0.27.0
+            "13": windows-amd64
+alpha:
+    value: 10
+fit_intercept:
+    value: false
+learning_rate:
+    value: 0.2
+max_depth:
+    value: 15
+max_features:
+    value: log2
+min_samples_leaf:
+    value: 20
+model_type:
+    value: random_forest
+n_estimators:
+    value: 200
+nn_activation:
+    value: relu
+nn_epochs:
+    value: 5
+nn_hidden_layers:
+    value:
+        - 32
+        - 16
+nn_learning_rate:
+    value: 0.001
+svm_c:
+    value: 1
+svm_epsilon:
+    value: 0.1

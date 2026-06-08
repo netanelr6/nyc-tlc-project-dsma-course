@@ -27,8 +27,8 @@ TARGETS_TO_DOWNLOAD = {
         # 2025: list(range(1, 13)),  # Full year 2025 (Jan - Dec)
     },
     "test": {
-        2025: [1],  #small test 
-        # 2026: [1, 2]               # Test set: Jan and Feb 2026 only
+        # 2025: [1,2],  #small test 
+        2026: [1, 2]               # Test set: Jan and Feb 2026 only
     }
 }
 

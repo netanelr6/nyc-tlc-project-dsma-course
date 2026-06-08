@@ -40,16 +40,8 @@ import pandas as pd
 from pathlib import Path
 from scipy import stats
 
-# Choose matplotlib backend safely
-try:
-    if 'ipykernel' not in sys.modules:
-        import tkinter
-        root = tkinter.Tk()
-        root.destroy()
-except Exception:
-    import matplotlib
-    matplotlib.use('Agg')
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from src.cleaning   import (drop_critical_nulls, fill_non_critical_nulls,

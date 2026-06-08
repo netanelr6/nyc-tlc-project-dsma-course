@@ -1,0 +1,21 @@
+2026-06-08 15:03:06,204 INFO    MainThread:16592 [wandb_init.py:setup_run_log_directory():723] Logging user logs to C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260608_150306-97sakzhj\logs\debug.log
+2026-06-08 15:03:06,205 INFO    MainThread:16592 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260608_150306-97sakzhj\logs\debug-internal.log
+2026-06-08 15:03:06,205 INFO    MainThread:16592 [wandb_init.py:init():851] calling init triggers
+2026-06-08 15:03:06,205 INFO    MainThread:16592 [wandb_init.py:init():856] wandb.init called with sweep_config: {}
+config: {'features': 'engineered', '_wandb': {}}
+2026-06-08 15:03:06,205 INFO    MainThread:16592 [wandb_init.py:init():899] starting backend
+2026-06-08 15:03:06,205 INFO    MainThread:16592 [wandb_init.py:init():914] sending inform_init request
+2026-06-08 15:03:06,605 INFO    MainThread:16592 [wandb_init.py:init():919] backend started and connected
+2026-06-08 15:03:06,606 INFO    MainThread:16592 [wandb_init.py:init():989] updated telemetry
+2026-06-08 15:03:06,664 INFO    MainThread:16592 [wandb_init.py:init():1012] communicating run to backend with 90.0 second timeout
+2026-06-08 15:03:07,232 INFO    MainThread:16592 [wandb_init.py:init():1057] starting run threads in backend
+2026-06-08 15:03:07,384 INFO    MainThread:16592 [wandb_run.py:_console_start():2509] atexit reg
+2026-06-08 15:03:07,384 INFO    MainThread:16592 [wandb_run.py:_redirect():2359] redirect: wrap_raw
+2026-06-08 15:03:07,384 INFO    MainThread:16592 [wandb_run.py:_redirect():2428] Wrapping output streams.
+2026-06-08 15:03:07,385 INFO    MainThread:16592 [wandb_run.py:_redirect():2451] Redirects installed.
+2026-06-08 15:03:07,386 INFO    MainThread:16592 [wandb_init.py:init():1095] run started, returning control to user process
+2026-06-08 15:03:07,387 INFO    MainThread:16592 [wandb_run.py:_finish():2271] finishing run dsma_fit_happens/dsma-nyc-tlc-taxi-test1/97sakzhj
+2026-06-08 15:03:07,387 INFO    MainThread:16592 [wandb_run.py:_atexit_cleanup():2476] got exitcode: 0
+2026-06-08 15:03:07,388 INFO    MainThread:16592 [wandb_run.py:_restore():2458] restore
+2026-06-08 15:03:07,388 INFO    MainThread:16592 [wandb_run.py:_restore():2464] restore done
+2026-06-08 15:03:08,651 INFO    MainThread:16592 [wandb_run.py:_footer_sync_info():3877] logging synced files

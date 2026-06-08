@@ -42,16 +42,8 @@ from pathlib import Path
 from sklearn.preprocessing import StandardScaler
 from sklearn.base import clone
 
-# Choose matplotlib backend safely
-try:
-    if 'ipykernel' not in sys.modules:
-        import tkinter
-        root = tkinter.Tk()
-        root.destroy()
-except Exception:
-    import matplotlib
-    matplotlib.use('Agg')
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 from src.features import (run_feature_pipeline, TARGET_COL,

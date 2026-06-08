@@ -1,0 +1,25 @@
+{"time":"2026-06-08T13:55:53.2405006+03:00","level":"INFO","msg":"wandb-core"}
+{"time":"2026-06-08T13:55:53.241385+03:00","level":"INFO","msg":"stream: starting","core version":"0.27.0"}
+{"time":"2026-06-08T13:55:53.6459011+03:00","level":"INFO","msg":"stream: created new stream","id":"jw42isno"}
+{"time":"2026-06-08T13:55:53.6459011+03:00","level":"INFO","msg":"handler: started"}
+{"time":"2026-06-08T13:55:53.6482898+03:00","level":"INFO","msg":"stream: started"}
+{"time":"2026-06-08T13:55:53.6482898+03:00","level":"INFO","msg":"writer: started","stream_id":"jw42isno"}
+{"time":"2026-06-08T13:55:53.6482898+03:00","level":"INFO","msg":"sender: started"}
+{"time":"2026-06-08T13:55:59.6742327+03:00","level":"INFO","msg":"filestream: sending request","total_files":0,"uploaded_len":1}
+{"time":"2026-06-08T13:56:00.0676694+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-08T13:56:14.6741172+03:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":0,"events_lines":1,"uploaded_len":1}
+{"time":"2026-06-08T13:56:15.121477+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-08T13:56:29.6733247+03:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":1,"events_lines":1}
+{"time":"2026-06-08T13:56:30.2500254+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-08T13:56:44.6733518+03:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":2,"events_lines":1}
+{"time":"2026-06-08T13:56:45.0303177+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-08T13:56:59.6730709+03:00","level":"INFO","msg":"filestream: sending request","total_files":1,"events_offset":3,"events_lines":1}
+{"time":"2026-06-08T13:56:59.9626374+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-08T13:57:06.0463484+03:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-06-08T13:57:06.0463484+03:00","level":"INFO","msg":"filestream: sending request","total_files":2,"history_offset":0,"history_lines":1,"uploaded_len":2,"complete":true,"exit_code":0}
+{"time":"2026-06-08T13:57:06.368166+03:00","level":"INFO","msg":"filestream: request sent","status":"200 OK"}
+{"time":"2026-06-08T13:57:06.3700067+03:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-06-08T13:57:06.378695+03:00","level":"INFO","msg":"stream: finishing up"}
+{"time":"2026-06-08T13:57:06.378695+03:00","level":"INFO","msg":"handler: closed"}
+{"time":"2026-06-08T13:57:06.3792509+03:00","level":"INFO","msg":"sender: closed"}
+{"time":"2026-06-08T13:57:06.3792509+03:00","level":"INFO","msg":"stream: all finished"}

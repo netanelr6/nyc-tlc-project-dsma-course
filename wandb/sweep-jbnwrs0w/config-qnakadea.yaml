@@ -1,0 +1,6 @@
+wandb_version: 1
+
+fit_intercept:
+  value: true
+model_type:
+  value: linear_regression

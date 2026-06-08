@@ -24,16 +24,8 @@ import sys
 import numpy as np
 import pandas as pd
 
-# Choose matplotlib backend safely
-try:
-    if 'ipykernel' not in sys.modules:
-        import tkinter
-        root = tkinter.Tk()
-        root.destroy()
-except Exception:
-    import matplotlib
-    matplotlib.use('Agg')
-
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from pathlib import Path
 
@@ -194,5 +186,5 @@ def plot_feature_importance(model, feature_names, model_name, X_val=None, y_val=
         plt.savefig(save_path, dpi=150, bbox_inches="tight")
         print(f"  Plot saved -> {save_path}")
 
-    plt.show()
+    plt.close(fig)
     return importance_df

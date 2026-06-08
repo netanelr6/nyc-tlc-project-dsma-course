@@ -5,25 +5,32 @@ NYC TLC Trip Fare Prediction — Full Pipeline
 Run this script to execute the complete end-to-end pipeline structured by Acts:
 
   Act 1 — Data Exploration & Prep
-    - Step 1.1: Data download configuration (downloads raw data if missing)
-    - Step 1.2: Data Exploration (prints descriptive stats and plots)
+    - Step 1.1: Data Download (downloads raw data if missing)
+    - Step 1.2: Data Fundamentals (prints descriptive stats and plots)
     - Step 1.3: Data Validation (runs validation checks)
     - Step 1.4: Data Cleaning (Raw Train & Test -> Cleaned Parquets)
-    - Step 1.5: Feature Engineering (saves baseline & engineered features to parquets)
+    - Step 1.5: Prepare Features (saves baseline & engineered features to parquets)
 
   Act 2 — Model Building & Tuning
-    - Step 3 & 4: Model Training and Baseline/Engineered Evaluations
-    - Step 5: Head-to-Head Comparison
-    - Step 7: Hyperparameter Tuning (Sweeps & Retraining)
+    - Step 2.1: Model Training & Evaluation
+    - Step 2.2: Head-to-Head Comparison
+    - Step 2.3: Hyperparameter Tuning (Sweeps & Retraining Champion)
 
   Act 3 — Model Evaluation & Experiments
-    - Step 6: Champion & Feature Importance
-    - Step 8: Error Analysis (sample-level errors, breakdowns in USD)
-    - Step 9: Drift Detection (PSI + KS on Train vs Test, label/concept drift)
+    - Step 3.1: Champion Evaluation & Feature Importance
 
   Act 4 — Productionize Model
-    - Step 9.1: Evidently AI Drift Detection (Train vs Dec 2024)
-    - Step 10: Drift Mitigation & W&B Artifact Versioning
+    - Step 4.1: Evidently AI Drift Detection (Train vs Dec 2024)
+    - Step 4.2: Drift Mitigation & W&B Artifact Versioning
+
+  Act 5 — Staging & Testing
+    - Step 5.1: Final Test-Set Inference & Performance Check (on reserved 2026 data)
+    - Step 5.2: Error Analysis on Hold-out Predictions
+    - Step 5.3: Data Drift Validation (Train vs Test)
+
+  Act 6 — Deployment
+    - Step 6.1: Asset Verification
+    - Step 6.2: App Launcher Prompt
 
 Modularity note
 ---------------
@@ -92,10 +99,19 @@ ENGINEERED_TEST_PARQUET       = "data/processed/engineered_test.parquet"
 SCALER_SAVE_PATH_BSSELINE     = "data/feature_stores/baseline_scaler.pkl"
 SCALER_SAVE_PATH_ENGINEERD    = "data/feature_stores/engineered_scaler.pkl"
 
+# ── Hyperparameters and settings ──────────────────────────────────────────────
+DRIFT_TRAIN_SAMPLE            = 20000
+DRIFT_EVAL_SAMPLE             = 5000
+DRIFT_SEED                    = 42
+DRIFT_DOWNLOAD_URL            = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-12.parquet"
+RANDOM_SWEEP_RUNS             = 12
+GRID_SWEEP_RUNS               = 6
+LOOKUP_CSV_PATH               = "notebooks/taxi_zone_lookup.csv"
+
 
 # ── W&B configuration ─────────────────────────────────────────────────────────
 
-WANDB_PROJECT = "dsma-nyc-tlc-taxi"
+WANDB_PROJECT = "dsma-nyc-tlc-taxi-test2"
 WANDB_ENTITY  = "dsma_fit_happens"
 TUNING_SAMPLE_SIZE = 2_500_000
 WANDB_MAX_TABLE_ROWS = 50_000
@@ -264,9 +280,9 @@ def run_act1(sample_size=None):
 def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
     """
     Act 2 — Model Building & Tuning
-    - Steps 3 & 4: Model Training and Baseline/Engineered Evaluations
-    - Step 5: Head-to-Head Comparison
-    - Step 7: Hyperparameter Tuning (Sweeps & Retraining)
+    - Step 2.1: Model Training & Evaluation
+    - Step 2.2: Head-to-Head Comparison
+    - Step 2.3: Hyperparameter Tuning (Sweeps & Retraining Champion)
     """
     _print_header("ACT 2 — Model Building & Tuning")
     act2_start = time.time()
@@ -304,7 +320,7 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
     #     )
 
     # ── Experiment B: Engineered Models
-    print("\n--- Training Engineered Models ---")
+    _print_small_header("2.1 Model Training & Evaluation")
     t0 = time.time()
     X_train_eng = eng_train.drop(columns=[TARGET_COL])
     y_train_eng = eng_train[TARGET_COL]
@@ -334,7 +350,7 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
     #       f"improved by {best_model_row['mae_improvement_%']:.1f}% with feature engineering")
 
     # ── Hyperparameter Tuning
-    print("\n--- Hyperparameter Tuning Sweeps ---")
+    _print_small_header("2.3 Hyperparameter Tuning Sweeps")
     t0 = time.time()
     
     # Perform Stratified Subsampling for sweeps
@@ -351,7 +367,7 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
         sweep_config = RANDOM_SEARCH_CONFIG,
         project      = wandb_project,
         entity       = wandb_entity,
-        n_runs       = 12,
+        n_runs       = RANDOM_SWEEP_RUNS,
     )
     winning_family = best_random_config.get("model_type", "random_forest")
     print(f"\n  Random search complete. Best family: {winning_family}")
@@ -364,7 +380,7 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
         sweep_config = grid_config,
         project      = wandb_project,
         entity       = wandb_entity,
-        n_runs       = 6,
+        n_runs       = GRID_SWEEP_RUNS,
     )
     print(f"\n  Grid search complete. Best config: {best_grid_config}")
 
@@ -387,55 +403,29 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
 # ── Act 3 ────────────────────────────────────────────────────────────────────
 
 def run_act3(
-    train_cleaned_parquet=TRAIN_CLEANED_PARQUET,
-    test_cleaned_parquet=TEST_CLEANED_PARQUET,
     engineered_test_parquet=ENGINEERED_TEST_PARQUET,
     model_dir_engineered=MODEL_DIR_ENGINEERED,
-    model_dir_tuned=MODEL_DIR_TUNED,
     plots_dir=PLOTS_DIR,
     wandb_project=WANDB_PROJECT,
     wandb_entity=WANDB_ENTITY,
-    wandb_max_table_rows=WANDB_MAX_TABLE_ROWS,
 ):
     """
     Act 3 — Model Evaluation & Experiments
-    - Step 6: Champion Model & Feature Importance & W&B logging
-    - Step 8: Error Analysis (Tables + Segment breakdowns)
-    - Step 9: Drift Detection (PSI + KS on Train vs Test)
+    - Step 3.1: Champion Evaluation & Feature Importance
     """
     _print_header("ACT 3 — Model Evaluation & Experiments")
     act3_start = time.time()
 
-    # Load datasets and models from disk (at the beginning of the function)
-    train_clean = pd.read_parquet(train_cleaned_parquet)
-    test_clean  = pd.read_parquet(test_cleaned_parquet)
-    eng_test    = pd.read_parquet(engineered_test_parquet)
-    eng_scaler  = joblib.load(Path(model_dir_engineered) / "scaler.pkl")
-    
-    # Resolve winning family and configuration from disk
-    config_path = Path(model_dir_tuned) / "best_config.json"
-    if config_path.exists():
-        with open(config_path, "r") as f:
-            best_grid_config = json.load(f)
-        winning_family = best_grid_config.get("model_type", "gradient_boosting")
-    else:
-        tuned_files = list(Path(model_dir_tuned).glob("tuned_*.pkl"))
-        if tuned_files:
-            winning_family = tuned_files[0].stem.replace("tuned_", "")
-        else:
-            raise FileNotFoundError(f"No tuned model file found in {model_dir_tuned} and no best_config.json exists.")
-        best_grid_config = {"model_type": winning_family}
-
-    tuned_model_path = Path(model_dir_tuned) / f"tuned_{winning_family}.pkl"
-    tuned_champion_model = joblib.load(tuned_model_path)
-
+    # Load test dataset for evaluating baseline/engineered models to select the champion
+    eng_test = pd.read_parquet(engineered_test_parquet)
     X_test_eng = eng_test.drop(columns=[TARGET_COL])
     y_test_eng = eng_test[TARGET_COL]
 
     # Evaluate engineered models on the fly to get engineered_results
     engineered_results = evaluate_all_models(X_test_eng, y_test_eng, model_dir_engineered)
 
-    # ── Champion & Feature Importance
+    # <> 3.1 Champion Evaluation & Feature Importance <><><><><><><>
+    _print_small_header("3.1 Champion Evaluation & Feature Importance")
     champion_name  = select_champion(engineered_results, metric="mae")
     champion_model = load_model(champion_name, model_dir_engineered)
     champion_row   = engineered_results.loc[engineered_results["model"] == champion_name].iloc[0]
@@ -470,88 +460,7 @@ def run_act3(
     if url:
         print(f"\n  W&B run logged -> {url}")
 
-    # ── Evaluate Tuned Model and Log
-    y_pred_tuned = tuned_champion_model.predict(X_test_eng)
-    tuned_mae  = float(np.mean(np.abs(y_test_eng.values - y_pred_tuned)))
-    tuned_rmse = float(np.sqrt(np.mean((y_test_eng.values - y_pred_tuned) ** 2)))
-
-    print(f"\n  Tuned model evaluation:")
-    print(f"    MAE  : ${tuned_mae:.2f}  (champion baseline: ${float(champion_row['mae']):.2f})")
-    print(f"    RMSE : ${tuned_rmse:.2f}  (champion baseline: ${float(champion_row['rmse']):.2f})")
-
-    tuning_tracker = ExperimentTracker(
-        project  = wandb_project,
-        entity   = wandb_entity,
-        run_name = f"tuned-{winning_family}",
-        tags     = ["tuned", "grid-search"],
-        config   = best_grid_config,
-    )
-    tuning_tracker.log_summary({"mae": tuned_mae, "rmse": tuned_rmse})
-
-    tuned_pkl = Path(model_dir_tuned) / f"tuned_{winning_family}.pkl"
-    log_model_artifact(
-        tuning_tracker, tuned_pkl, "tuned-champion",
-        metadata={"source": "grid-search", "mae": tuned_mae},
-    )
-    log_feature_artifact(
-        tuning_tracker,
-        Path(model_dir_engineered) / "scaler.pkl",
-        active_feature_steps=X_test_eng.columns.tolist(),
-        metadata={"n_features": len(X_test_eng.columns)},
-    )
-    url = tuning_tracker.finish()
-    if url:
-        print(f"  W&B run logged -> {url}")
-
-    # ── Error Analysis
-    error_df, error_figs = run_error_analysis(
-        X_test     = X_test_eng,
-        y_test     = y_test_eng,
-        model      = tuned_champion_model,
-        output_dir = plots_dir,
-    )
-
-    error_tracker = ExperimentTracker(
-        project  = wandb_project,
-        entity   = wandb_entity,
-        run_name = "error-analysis",
-        tags     = ["error-analysis", "tuned"],
-        config   = {"model": winning_family, "n_test_samples": len(error_df)},
-    )
-    error_tracker.log_table(
-        error_df[["actual", "predicted", "abs_error", "pct_error",
-                  "rush_hour_label", "trip_type", "distance_bucket",
-                  "day_name", "time_of_day"]].dropna(how="all"),
-        table_name = "per_sample_errors",
-        max_rows   = wandb_max_table_rows,
-    )
-    error_tracker.log_summary({"mae": float(error_df["abs_error"].mean()),
-                                "p90_abs_error":  float(error_df["abs_error"].quantile(0.9))})
-    for col, fig in error_figs.items():
-        error_tracker.log_plot(fig, f"error_by_{col}")
-    url = error_tracker.finish()
-    if url:
-        print(f"\n  W&B run logged -> {url}")
-
-    # ── Drift Detection (Train vs Test)
-    drift_report = build_drift_report(train_clean, test_clean, ["trip_distance", "PULocationID", "DOLocationID"])
-    print("\nDrift report:")
-    print(drift_report)
-
-    label_drift = detect_label_drift(train_clean, test_clean)
-    print("\nLabel drift:")
-    print(label_drift)
-
-    concept_drift = detect_concept_drift(train_clean, test_clean, tuned_champion_model, eng_scaler)
-    print("\nConcept drift:")
-    print(concept_drift)
-
-    print("\nGenerating drift distribution plots...")
-    plot_feature_distributions(train_clean, test_clean, "trip_distance", cur_label="Jan 2025 Test", output_dir=plots_dir)
-    plot_label_drift_distribution(train_clean, test_clean, cur_label="Jan 2025 Test", output_dir=plots_dir)
-
     print(f"\n\033[33m>>> [Duration] ACT 3 completed in {time.time() - act3_start:.2f}s\033[0m")
-    return y_pred_tuned
 
 
 
@@ -574,17 +483,18 @@ def run_act4(
     evidently_concept_ref_limit=EVIDENTLY_CONCEPT_REF_LIMIT,
 ):
     """
-    Act 4 — Productionize Model
-    - Step 9.1: Evidently AI Drift Detection (Train vs. Dec 2024)
-    - Step 10: Drift Mitigation & Before/After Comparison
+    Act 4 — Productionize Model (Evidently AI Drift & Mitigation)
+    - Step 4.1: Evidently AI Drift Detection (Train vs. Dec 2024)
+    - Step 4.2: Drift Mitigation & Before/After Comparison
     """
     _print_header("ACT 4 — Productionize Model (Evidently AI Drift & Mitigation)")
+    _print_small_header("4.1 Evidently AI Drift Detection (Train vs. Dec 2024)")
 
     drift_month_path = Path(drift_raw_parquet)
     if not drift_month_path.exists():
         print(f"  Drift month parquet not found at {drift_raw_parquet}")
         print("  Downloading December 2024 yellow taxi trip data...")
-        url = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-12.parquet"
+        url = DRIFT_DOWNLOAD_URL
         try:
             r = requests.get(url, stream=True)
             if r.status_code == 200:
@@ -595,11 +505,11 @@ def run_act4(
                 print(f"  Successfully downloaded December 2024 data -> {drift_raw_parquet}")
             else:
                 print(f"  Failed to download from {url} (HTTP status: {r.status_code})")
-                print("  Skipping Steps 9.1 and 10.")
+                print("  Skipping Steps 4.1 and 4.2.")
                 return
         except Exception as e:
             print(f"  Error downloading December 2024 data: {e}")
-            print("  Skipping Steps 9.1 and 10.")
+            print("  Skipping Steps 4.1 and 4.2.")
             return
 
     # Resolve winning family and configuration from disk
@@ -627,10 +537,6 @@ def run_act4(
     X_test_eng = eng_test.drop(columns=[TARGET_COL])
     y_test_eng = eng_test[TARGET_COL]
     y_pred_tuned = tuned_champion_model.predict(X_test_eng)
-
-    DRIFT_TRAIN_SAMPLE = 20000
-    DRIFT_EVAL_SAMPLE  = 5000
-    DRIFT_SEED         = 42
 
     drift_df = pd.read_parquet(drift_raw_parquet)
     drift_df = clean_dataframe(drift_df)
@@ -709,7 +615,7 @@ def run_act4(
     print(f"\n  Selected strategy      : {selected_strategy}")
 
     # ── Drift Mitigation
-    _print_header("STEP 10 — Drift Mitigation + Before / After Comparison")
+    _print_small_header("4.2 Drift Mitigation & Before/After Comparison")
 
     drift_eval_parquet = Path(processed_dir) / "drift_eval.parquet"
     drift_eval_raw.to_parquet(drift_eval_parquet, index=False)
@@ -720,7 +626,7 @@ def run_act4(
     print(f"\n  Tuned champion MAE — Dec eval (pre-mitigation) : ${baseline_drift_mae:.2f}")
 
     if selected_strategy == "none":
-        print("  No mitigation required — skipping Step 10.")
+        print("  No mitigation required — skipping Step 4.2.")
         return
 
     print(f"\n  Applying strategy: {selected_strategy}")
@@ -824,6 +730,184 @@ def run_act4(
 
 
 
+# ── Act 5 ────────────────────────────────────────────────────────────────────
+
+def run_act5(
+    train_cleaned_parquet=TRAIN_CLEANED_PARQUET,
+    test_cleaned_parquet=TEST_CLEANED_PARQUET,
+    engineered_test_parquet=ENGINEERED_TEST_PARQUET,
+    model_dir_engineered=MODEL_DIR_ENGINEERED,
+    model_dir_tuned=MODEL_DIR_TUNED,
+    plots_dir=PLOTS_DIR,
+    wandb_project=WANDB_PROJECT,
+    wandb_entity=WANDB_ENTITY,
+    wandb_max_table_rows=WANDB_MAX_TABLE_ROWS,
+):
+    """
+    Act 5 — Staging + Testing
+    - Step 5.1: Final Test-Set Inference & Performance Check (on reserved 2026 data)
+    - Step 5.2: Error Analysis on Hold-out Predictions
+    - Step 5.3: Data Drift Validation (Train vs Test)
+    """
+    _print_header("ACT 5 — Staging & Testing (2026 Hold-out Evaluation)")
+    t_start = time.time()
+    
+    # Load test data and scaler from disk
+    train_clean = pd.read_parquet(train_cleaned_parquet)
+    test_clean  = pd.read_parquet(test_cleaned_parquet)
+    eng_test    = pd.read_parquet(engineered_test_parquet)
+    eng_scaler  = joblib.load(Path(model_dir_engineered) / "scaler.pkl")
+    
+    # Resolve winning family and tuned champion model
+    config_path = Path(model_dir_tuned) / "best_config.json"
+    if config_path.exists():
+        with open(config_path, "r") as f:
+            best_grid_config = json.load(f)
+        winning_family = best_grid_config.get("model_type", "gradient_boosting")
+    else:
+        tuned_files = list(Path(model_dir_tuned).glob("tuned_*.pkl"))
+        if tuned_files:
+            winning_family = tuned_files[0].stem.replace("tuned_", "")
+        else:
+            raise FileNotFoundError(f"No tuned model file found in {model_dir_tuned}")
+        best_grid_config = {"model_type": winning_family}
+        
+    tuned_model_path = Path(model_dir_tuned) / f"tuned_{winning_family}.pkl"
+    tuned_champion_model = joblib.load(tuned_model_path)
+    
+    X_test_eng = eng_test.drop(columns=[TARGET_COL])
+    y_test_eng = eng_test[TARGET_COL]
+    
+    # <> 5.1 Final Test-Set Inference & Performance Check <><><><><><><>
+    _print_small_header("5.1 Final Test-Set Inference & Performance Check")
+    y_pred_tuned = tuned_champion_model.predict(X_test_eng)
+    tuned_mae  = float(np.mean(np.abs(y_test_eng.values - y_pred_tuned)))
+    tuned_rmse = float(np.sqrt(np.mean((y_test_eng.values - y_pred_tuned) ** 2)))
+    
+    print(f"\n  Tuned Model Evaluation on Unseen 2026 Data:")
+    print(f"    MAE  : ${tuned_mae:.2f}")
+    print(f"    RMSE : ${tuned_rmse:.2f}")
+    
+    # Log to W&B
+    tuning_tracker = ExperimentTracker(
+        project  = wandb_project,
+        entity   = wandb_entity,
+        run_name = f"tuned-{winning_family}-eval-2026",
+        tags     = ["tuned", "grid-search", "2026-test"],
+        config   = best_grid_config,
+    )
+    tuning_tracker.log_summary({"mae": tuned_mae, "rmse": tuned_rmse})
+    
+    tuned_pkl = Path(model_dir_tuned) / f"tuned_{winning_family}.pkl"
+    log_model_artifact(
+        tuning_tracker, tuned_pkl, "tuned-champion",
+        metadata={"source": "grid-search", "mae": tuned_mae},
+    )
+    log_feature_artifact(
+        tuning_tracker,
+        Path(model_dir_engineered) / "scaler.pkl",
+        active_feature_steps=X_test_eng.columns.tolist(),
+        metadata={"n_features": len(X_test_eng.columns)},
+    )
+    url = tuning_tracker.finish()
+    if url:
+        print(f"  W&B run logged -> {url}")
+        
+    # <> 5.2 Error Analysis on Hold-out Predictions <><><><><><><>
+    _print_small_header("5.2 Error Analysis on Hold-out Predictions")
+    error_df, error_figs = run_error_analysis(
+        X_test     = X_test_eng,
+        y_test     = y_test_eng,
+        model      = tuned_champion_model,
+        output_dir = plots_dir,
+    )
+    
+    error_tracker = ExperimentTracker(
+        project  = wandb_project,
+        entity   = wandb_entity,
+        run_name = "error-analysis-2026",
+        tags     = ["error-analysis", "tuned", "2026-test"],
+        config   = {"model": winning_family, "n_test_samples": len(error_df)},
+    )
+    error_tracker.log_table(
+        error_df[["actual", "predicted", "abs_error", "pct_error",
+                  "rush_hour_label", "trip_type", "distance_bucket",
+                  "day_name", "time_of_day"]].dropna(how="all"),
+        table_name = "per_sample_errors",
+        max_rows   = wandb_max_table_rows,
+    )
+    error_tracker.log_summary({"mae": float(error_df["abs_error"].mean()),
+                                "p90_abs_error":  float(error_df["abs_error"].quantile(0.9))})
+    for col, fig in error_figs.items():
+        error_tracker.log_plot(fig, f"error_by_{col}")
+    url = error_tracker.finish()
+    if url:
+        print(f"\n  W&B run logged -> {url}")
+        
+    # <> 5.3 Data Drift Validation (Train vs Test) <><><><><><><>
+    _print_small_header("5.3 Data Drift Validation (Train vs Test)")
+    drift_report = build_drift_report(train_clean, test_clean, ["trip_distance", "PULocationID", "DOLocationID"])
+    print("\nDrift report:")
+    print(drift_report)
+
+    label_drift = detect_label_drift(train_clean, test_clean)
+    print("\nLabel drift:")
+    print(label_drift)
+
+    concept_drift = detect_concept_drift(train_clean, test_clean, tuned_champion_model, eng_scaler)
+    print("\nConcept drift:")
+    print(concept_drift)
+
+    print("\nGenerating drift distribution plots...")
+    plot_feature_distributions(train_clean, test_clean, "trip_distance", cur_label="Jan 2026 Test", output_dir=plots_dir)
+    plot_label_drift_distribution(train_clean, test_clean, cur_label="Jan 2026 Test", output_dir=plots_dir)
+    
+    print(f"\n\033[33m>>> [Duration] ACT 5 completed in {time.time() - t_start:.2f}s\033[0m")
+    return y_pred_tuned
+
+
+# ── Act 6 ────────────────────────────────────────────────────────────────────
+
+def run_act6(
+    model_dir_engineered=MODEL_DIR_ENGINEERED,
+    model_dir_tuned=MODEL_DIR_TUNED,
+    model_dir_mitigated=MODEL_DIR_MITIGATED,
+):
+    """
+    Act 6 — Deployment
+    - Step 6.1: Asset Verification (ensures models and scalers are ready for streamlit_app)
+    - Step 6.2: App Launcher Prompt
+    """
+    _print_header("ACT 6 — Deployment (Streamlit Application Preparation)")
+    t_start = time.time()
+    
+    _print_small_header("6.1 Asset Verification")
+    
+    # Check if we have production assets
+    scaler_path = Path(model_dir_engineered) / "scaler.pkl"
+    model_path  = Path(model_dir_engineered) / "gradient_boosting.pkl" # default model used in app
+    lookup_path = Path(LOOKUP_CSV_PATH)
+    
+    all_exist = True
+    for p in [scaler_path, model_path, lookup_path]:
+        if p.exists():
+            print(f"  [OK] Asset verified: '{p}'")
+        else:
+            print(f"  [MISSING] Asset not found: '{p}'")
+            all_exist = False
+            
+    _print_small_header("6.2 App Launcher Prompt")
+    if all_exist:
+        print("\033[92m  [READY] All deployment assets are successfully verified!\033[0m")
+        print("  To launch the deployment dashboard, run the launcher batch file:")
+        print("    .\\run_streamlit.bat")
+    else:
+        print("\033[91m  [WARNING] Some production assets are missing. Make sure you run Acts 1-4 first.\033[0m")
+        
+    print(f"\n\033[33m>>> [Duration] ACT 6 completed in {time.time() - t_start:.2f}s\033[0m")
+
+
+
 # =========================================================================  
 # ===================  Pipeline Orchestration  ============================  
 # =========================================================================  
@@ -854,10 +938,9 @@ def run_pipeline(
 
     if act is None or act == 3:
         # Act 3 — Model Evaluation & Experiments
-        y_pred_tuned = run_act3(
+        run_act3(
             wandb_project        = wandb_project,
             wandb_entity         = wandb_entity,
-            wandb_max_table_rows = wandb_max_table_rows,
         )
 
     if act is None or act == 4:
@@ -868,6 +951,18 @@ def run_pipeline(
             evidently_drift_ref_limit  = evidently_drift_ref_limit,
             evidently_concept_ref_limit = evidently_concept_ref_limit,
         )
+
+    if act is None or act == 5:
+        # Act 5 — Staging & Testing
+        run_act5(
+            wandb_project        = wandb_project,
+            wandb_entity         = wandb_entity,
+            wandb_max_table_rows = wandb_max_table_rows,
+        )
+
+    if act is None or act == 6:
+        # Act 6 — Deployment
+        run_act6()
 
 
 def _int_or_none(value):
@@ -888,8 +983,8 @@ if __name__ == "__main__":
                         help="Sample size for hyperparameter tuning sweeps (stratified by hour and day)")
     parser.add_argument("--wandb-max-table-rows", type=int, default=WANDB_MAX_TABLE_ROWS,
                         help="Maximum rows to log to W&B interactive tables (subsampled if exceeded)")
-    parser.add_argument("--act", type=int, choices=[1, 2, 3, 4], default=None,
-                        help="Run only a specific Act (1, 2, 3, or 4). If not specified, runs the entire pipeline.")
+    parser.add_argument("--act", type=int, choices=[1, 2, 3, 4, 5, 6], default=None,
+                        help="Run only a specific Act (1, 2, 3, 4, 5, or 6). If not specified, runs the entire pipeline.")
     parser.add_argument("--evidently-drift-ref-limit", type=_int_or_none, default=EVIDENTLY_DRIFT_REF_LIMIT,
                         help="Subsample limit for reference training set in Evidently dataset drift detection (or 'None')")
     parser.add_argument("--evidently-concept-ref-limit", type=_int_or_none, default=EVIDENTLY_CONCEPT_REF_LIMIT,

@@ -1,0 +1,12 @@
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:695: UserWarning: Got `batch_size` less than 1 or larger than sample size. It is going to be clipped
+  warnings.warn(
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (10) reached and the optimization hasn't converged yet.
+  warnings.warn(
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:695: UserWarning: Got `batch_size` less than 1 or larger than sample size. It is going to be clipped
+  warnings.warn(
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (10) reached and the optimization hasn't converged yet.
+  warnings.warn(
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:695: UserWarning: Got `batch_size` less than 1 or larger than sample size. It is going to be clipped
+  warnings.warn(
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (10) reached and the optimization hasn't converged yet.
+  warnings.warn(

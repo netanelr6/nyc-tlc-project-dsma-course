@@ -1,0 +1,25 @@
+2026-06-08 15:10:11,320 INFO    Thread-339 (_run_job):16592 [wandb_setup.py:_flush():81] Current SDK version is 0.27.0
+2026-06-08 15:10:11,320 INFO    Thread-339 (_run_job):16592 [wandb_setup.py:_flush():81] Configure stats pid to 16592
+2026-06-08 15:10:11,320 INFO    Thread-339 (_run_job):16592 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-06-08 15:10:11,321 INFO    Thread-339 (_run_job):16592 [wandb_init.py:setup_run_log_directory():723] Logging user logs to C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260608_151011-kv2v0irf\logs\debug.log
+2026-06-08 15:10:11,321 INFO    Thread-339 (_run_job):16592 [wandb_init.py:setup_run_log_directory():724] Logging internal logs to C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260608_151011-kv2v0irf\logs\debug-internal.log
+2026-06-08 15:10:11,322 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():851] calling init triggers
+2026-06-08 15:10:11,322 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():856] wandb.init called with sweep_config: {'alpha': 1, 'fit_intercept': False, 'learning_rate': 0.2, 'max_depth': 20, 'max_features': 'sqrt', 'min_samples_leaf': 10, 'model_type': 'gradient_boosting', 'n_estimators': 150, 'nn_activation': 'relu', 'nn_epochs': 5, 'nn_hidden_layers': [32], 'nn_learning_rate': 0.001, 'svm_c': 10, 'svm_epsilon': 0.1}
+config: {'_wandb': {}}
+2026-06-08 15:10:11,322 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():899] starting backend
+2026-06-08 15:10:13,588 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():914] sending inform_init request
+2026-06-08 15:10:14,012 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():919] backend started and connected
+2026-06-08 15:10:14,013 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_config_callback():1332] config_cb None None {'alpha': 1, 'fit_intercept': False, 'learning_rate': 0.2, 'max_depth': 20, 'max_features': 'sqrt', 'min_samples_leaf': 10, 'model_type': 'gradient_boosting', 'n_estimators': 150, 'nn_activation': 'relu', 'nn_epochs': 5, 'nn_hidden_layers': [32], 'nn_learning_rate': 0.001, 'svm_c': 10, 'svm_epsilon': 0.1}
+2026-06-08 15:10:14,013 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():989] updated telemetry
+2026-06-08 15:10:14,080 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():1012] communicating run to backend with 90.0 second timeout
+2026-06-08 15:10:14,555 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():1057] starting run threads in backend
+2026-06-08 15:10:14,728 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_console_start():2509] atexit reg
+2026-06-08 15:10:14,729 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_redirect():2359] redirect: wrap_raw
+2026-06-08 15:10:14,730 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_redirect():2428] Wrapping output streams.
+2026-06-08 15:10:14,730 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_redirect():2451] Redirects installed.
+2026-06-08 15:10:14,744 INFO    Thread-339 (_run_job):16592 [wandb_init.py:init():1095] run started, returning control to user process
+2026-06-08 15:10:47,926 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_finish():2271] finishing run dsma_fit_happens/dsma-nyc-tlc-taxi-test1/kv2v0irf
+2026-06-08 15:10:47,927 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_atexit_cleanup():2476] got exitcode: 0
+2026-06-08 15:10:47,927 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_restore():2458] restore
+2026-06-08 15:10:47,927 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_restore():2464] restore done
+2026-06-08 15:10:50,089 INFO    Thread-339 (_run_job):16592 [wandb_run.py:_footer_sync_info():3877] logging synced files

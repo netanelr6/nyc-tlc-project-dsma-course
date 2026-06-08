@@ -1,0 +1,28 @@
+{
+  "os": "Windows-11-10.0.26200-SP0",
+  "python": "CPython 3.13.0",
+  "startedAt": "2026-06-08T10:52:50.687158Z",
+  "program": "c:\\Users\\netan\\Documents\\git\\NYC-TLC-Taxi-DSMA\\pipeline.py",
+  "codePath": "pipeline.py",
+  "codePathLocal": "pipeline.py",
+  "git": {
+    "remote": "https://github.com/netanelr6/nyc-tlc-project-dsma-course",
+    "commit": "5ec6e74717918dddb222b7d62ab08b904b47e087"
+  },
+  "email": "netanelr6@gmail.com",
+  "root": "C:\\Users\\netan\\Documents\\git\\NYC-TLC-Taxi-DSMA",
+  "host": "netanelr_PC",
+  "executable": "C:\\Users\\netan\\Documents\\git\\NYC-TLC-Taxi-DSMA\\nyc_taxi_venv\\Scripts\\python.exe",
+  "cpu_count": 10,
+  "cpu_count_logical": 12,
+  "disk": {
+    "/": {
+      "total": "1022844989440",
+      "used": "890611974144"
+    }
+  },
+  "memory": {
+    "total": "16852705280"
+  },
+  "writerId": "xo3356uc8jjbvo7tzypsko2a2rrxbww7"
+}

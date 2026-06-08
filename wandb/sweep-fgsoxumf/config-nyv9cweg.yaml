@@ -1,0 +1,6 @@
+wandb_version: 1
+
+alpha:
+  value: 1
+model_type:
+  value: ridge

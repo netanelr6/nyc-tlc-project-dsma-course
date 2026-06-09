@@ -199,7 +199,15 @@ def run_act1(sample_size=None):
     _print_small_header("1.1 Data Download")
     t0 = time.time()
     print("Running download pipeline check...")
-    run_download_pipeline()
+    if sample_size is not None:
+        # For a smoke test, only download a minimal subset (1 month of train and 1 month of test)
+        targets = {
+            "train": {2024: [1]},
+            "test": {2026: [1]}
+        }
+        run_download_pipeline(targets_config=targets)
+    else:
+        run_download_pipeline()
     print(f"\033[33m  [Duration] Data download finished in {time.time() - t0:.2f}s\033[0m")
 
 
@@ -209,10 +217,16 @@ def run_act1(sample_size=None):
 
     # Load and optimize raw train dataset (Do not load Test raw yet)
     print("\nLoading raw training dataset...")
-    df_raw_train = pd.read_parquet(RAW_TRAIN_DIR, engine='pyarrow')
     if sample_size is not None:
+        train_files = sorted(list(Path(RAW_TRAIN_DIR).glob("*.parquet")))
+        if not train_files:
+            raise FileNotFoundError(f"No parquet files found in {RAW_TRAIN_DIR}")
+        print(f"  [SMOKE TEST] Loading only the first partition file: {train_files[0].name}")
+        df_raw_train = pd.read_parquet(train_files[0], engine='pyarrow')
         print(f"  [SMOKE TEST] Sampling {sample_size:,} rows from train raw dataset.")
         df_raw_train = df_raw_train.sample(n=min(sample_size, len(df_raw_train)), random_state=42).reset_index(drop=True)
+    else:
+        df_raw_train = pd.read_parquet(RAW_TRAIN_DIR, engine='pyarrow')
     
     df_raw_train = optimize_dataframe_dtypes(df_raw_train)
     print(f"  Train Data: Loaded {len(df_raw_train):,} rows x {df_raw_train.shape[1]} columns")
@@ -260,10 +274,16 @@ def run_act1(sample_size=None):
     gc.collect()
 
     print("\nLoading raw test dataset...")
-    df_raw_test = pd.read_parquet(RAW_TEST_DIR, engine='pyarrow')
     if sample_size is not None:
+        test_files = sorted(list(Path(RAW_TEST_DIR).glob("*.parquet")))
+        if not test_files:
+            raise FileNotFoundError(f"No parquet files found in {RAW_TEST_DIR}")
+        print(f"  [SMOKE TEST] Loading only the first partition file: {test_files[0].name}")
+        df_raw_test = pd.read_parquet(test_files[0], engine='pyarrow')
         print(f"  [SMOKE TEST] Sampling {sample_size:,} rows from test raw dataset.")
         df_raw_test = df_raw_test.sample(n=min(sample_size, len(df_raw_test)), random_state=42).reset_index(drop=True)
+    else:
+        df_raw_test = pd.read_parquet(RAW_TEST_DIR, engine='pyarrow')
     df_raw_test = optimize_dataframe_dtypes(df_raw_test)
 
     print("\nCleaning test datasets...")

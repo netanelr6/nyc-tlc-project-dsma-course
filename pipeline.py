@@ -45,6 +45,7 @@ import numpy as np
 np.float_ = np.float64
 import pandas as pd
 import joblib
+import gc
 from pathlib import Path
 from dotenv import load_dotenv
 import time
@@ -154,9 +155,30 @@ def _comparison_table(baseline_results, engineered_results):
         )
     return merged
 
+
+def optimize_dataframe_dtypes(df):
+    """Downcasts float and integer columns, and converts object columns to categories, saving 60%+ RAM."""
+    for col in df.columns:
+        dt = df[col].dtype
+        if dt == 'float64':
+            df[col] = df[col].astype('float32')
+        elif dt in ['int64', 'int32']:
+            min_val, max_val = df[col].min(), df[col].max()
+            if min_val >= -128 and max_val <= 127:
+                df[col] = df[col].astype('int8')
+            elif min_val >= -32768 and max_val <= 32767:
+                df[col] = df[col].astype('int16')
+            else:
+                df[col] = df[col].astype('int32')
+        elif dt == 'object':
+            df[col] = df[col].astype('category')
+    return df
+
+
 # ================================================================================
 # ==========================   Act Functions  ==================================
 # ================================================================================
+
 
 # ── Act 1 ─────────────────────────────────────────────────────────────────────
 
@@ -184,18 +206,16 @@ def run_act1(sample_size=None):
     _print_small_header("1.2 Data Fundamentals")
     t0 = time.time()
 
-    # Load raw datasets
-    print("\nLoading raw datasets...")
+    # Load and optimize raw train dataset (Do not load Test raw yet)
+    print("\nLoading raw training dataset...")
     df_raw_train = pd.read_parquet(RAW_TRAIN_DIR, engine='pyarrow')
-    df_raw_test  = pd.read_parquet(RAW_TEST_DIR, engine='pyarrow')
     if sample_size is not None:
-        print(f"  [SMOKE TEST] Sampling {sample_size:,} rows from train and test raw datasets.")
+        print(f"  [SMOKE TEST] Sampling {sample_size:,} rows from train raw dataset.")
         df_raw_train = df_raw_train.sample(n=min(sample_size, len(df_raw_train)), random_state=42).reset_index(drop=True)
-        df_raw_test  = df_raw_test.sample(n=min(sample_size, len(df_raw_test)), random_state=42).reset_index(drop=True)
-
-
+    
+    df_raw_train = optimize_dataframe_dtypes(df_raw_train)
     print(f"  Train Data: Loaded {len(df_raw_train):,} rows x {df_raw_train.shape[1]} columns")
-    print(f"  Test Data:  Loaded {len(df_raw_test):,} rows x {df_raw_test.shape[1]} columns")
+    
     print("\n  Train Data Columns and Dtypes:")
     for col, dtype in zip(df_raw_train.columns, df_raw_train.dtypes):
         print(f"    - {col:<25} : {dtype}")
@@ -231,43 +251,96 @@ def run_act1(sample_size=None):
     
     print("\nCleaning training datasets...")
     train_clean = clean_parquet(df_raw_train, TRAIN_CLEANED_PARQUET, is_train=True)
-    print("\nCleaning test datasets...")
-    test_clean  = clean_parquet(df_raw_test, TEST_CLEANED_PARQUET, is_train=False)
+    train_clean_len = len(train_clean)
+    
+    print("Purging raw train dataframe and clean train dataframe from memory...")
+    del df_raw_train
+    del train_clean
+    gc.collect()
 
-    print(f"  Training set: {len(train_clean):,} rows")
-    print(f"  Test set:     {len(test_clean):,} rows")
+    print("\nLoading raw test dataset...")
+    df_raw_test = pd.read_parquet(RAW_TEST_DIR, engine='pyarrow')
+    if sample_size is not None:
+        print(f"  [SMOKE TEST] Sampling {sample_size:,} rows from test raw dataset.")
+        df_raw_test = df_raw_test.sample(n=min(sample_size, len(df_raw_test)), random_state=42).reset_index(drop=True)
+    df_raw_test = optimize_dataframe_dtypes(df_raw_test)
+
+    print("\nCleaning test datasets...")
+    test_clean = clean_parquet(df_raw_test, TEST_CLEANED_PARQUET, is_train=False)
+    test_clean_len = len(test_clean)
+
+    print("Purging raw test dataframe and clean test dataframe from memory...")
+    del df_raw_test
+    del test_clean
+    gc.collect()
+
+    print(f"  Training set: {train_clean_len:,} rows")
+    print(f"  Test set:     {test_clean_len:,} rows")
     print(f"\033[33m  [Duration] Data cleaning finished in {time.time() - t0:.2f}s\033[0m")
 
     # <> 1.5 Prepare features <><><><><><><><><><><><><><><><><><><>
     _print_small_header("1.5 Prepare Features")
     t0 = time.time()
-    
-    print("\nRunning baseline feature engineering on clean datasets...")
-    baseline_train, baseline_scaler = run_baseline_pipeline(train_clean, is_training=True)
-    baseline_test, _ = run_baseline_pipeline(test_clean, scaler=baseline_scaler, is_training=False)
 
-    print("\nRunning engineered feature engineering on clean datasets...")
-    eng_train, eng_scaler = run_feature_pipeline(train_clean, is_training=True)
-    eng_test, _ = run_feature_pipeline(test_clean, scaler=eng_scaler, is_training=False)
-
-    # Save scales and feature stores
+    # Create output directories if they don't exist
     Path("data/feature_stores").mkdir(parents=True, exist_ok=True)
     Path(MODEL_DIR_ENGINEERED).mkdir(parents=True, exist_ok=True)
     
+    # 1. Load Train Clean from disk
+    print("\nLoading train clean dataset for features...")
+    train_clean = pd.read_parquet(TRAIN_CLEANED_PARQUET, engine='pyarrow')
+    train_clean = optimize_dataframe_dtypes(train_clean)
+
+    # 2. Run baseline feature engineering on train
+    print("\nRunning baseline feature engineering on train clean dataset...")
+    baseline_train, baseline_scaler = run_baseline_pipeline(train_clean, is_training=True)
+    # Save baseline train features and delete baseline_train to free up RAM
+    baseline_train.to_parquet(BASELINE_TRAIN_PARQUET, index=False)
+    print(f"  Baseline train features saved -> {BASELINE_TRAIN_PARQUET}")
+    del baseline_train
+    gc.collect()
+
+    # 3. Run engineered feature engineering on train
+    print("\nRunning engineered feature engineering on train clean dataset...")
+    eng_train, eng_scaler = run_feature_pipeline(train_clean, is_training=True)
+    # Save engineered train features and delete eng_train/train_clean to free up RAM
+    eng_train.to_parquet(ENGINEERED_TRAIN_PARQUET, index=False)
+    print(f"  Engineered train features saved -> {ENGINEERED_TRAIN_PARQUET}")
+    del eng_train
+    del train_clean
+    gc.collect()
+
+    # Save scales and feature stores
     joblib.dump(baseline_scaler, SCALER_SAVE_PATH_BSSELINE)
     joblib.dump(eng_scaler, SCALER_SAVE_PATH_ENGINEERD)
     joblib.dump(eng_scaler, Path(MODEL_DIR_ENGINEERED) / "scaler.pkl")
     print(f"  Baseline scaler saved -> {SCALER_SAVE_PATH_BSSELINE}")
     print(f"  Engineered scaler saved -> {SCALER_SAVE_PATH_ENGINEERD}")
 
-    # Save features as parquet files
-    print("\nSaving feature sets to disk...")
-    baseline_train.to_parquet(BASELINE_TRAIN_PARQUET, index=False)
+    # 4. Load Test Clean from disk
+    print("\nLoading test clean dataset for features...")
+    test_clean = pd.read_parquet(TEST_CLEANED_PARQUET, engine='pyarrow')
+    test_clean = optimize_dataframe_dtypes(test_clean)
+
+    # 5. Run baseline feature engineering on test
+    print("\nRunning baseline feature engineering on test clean dataset...")
+    baseline_test, _ = run_baseline_pipeline(test_clean, scaler=baseline_scaler, is_training=False)
+    # Save baseline test features and delete baseline_test
     baseline_test.to_parquet(BASELINE_TEST_PARQUET, index=False)
-    eng_train.to_parquet(ENGINEERED_TRAIN_PARQUET, index=False)
+    print(f"  Baseline test features saved -> {BASELINE_TEST_PARQUET}")
+    del baseline_test
+    gc.collect()
+
+    # 6. Run engineered feature engineering on test
+    print("\nRunning engineered feature engineering on test clean dataset...")
+    eng_test, _ = run_feature_pipeline(test_clean, scaler=eng_scaler, is_training=False)
+    # Save engineered test features and delete eng_test/test_clean
     eng_test.to_parquet(ENGINEERED_TEST_PARQUET, index=False)
-    print(f"  Baseline features saved -> {BASELINE_TRAIN_PARQUET}, {BASELINE_TEST_PARQUET}")
-    print(f"  Engineered features saved -> {ENGINEERED_TRAIN_PARQUET}, {ENGINEERED_TEST_PARQUET}")
+    print(f"  Engineered test features saved -> {ENGINEERED_TEST_PARQUET}")
+    del eng_test
+    del test_clean
+    gc.collect()
+
     print(f"\033[33m  [Duration] Features preparation finished in {time.time() - t0:.2f}s\033[0m")
 
     print(f"\n\033[33m>>> [Duration] ACT 1 completed in {time.time() - act1_start:.2f}s\033[0m")

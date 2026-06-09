@@ -1,162 +1,149 @@
-# # NYC TLC — ML Pipeline CI/CD
-# # ==============================
-# #
-# # This workflow demonstrates how a production ML pipeline can be automated
-# # so that when new data arrives, drift is detected and mitigation is triggered
-# # without any manual intervention.
-# #
-# # Triggers
-# # --------
-# #   push to main  — runs whenever pipeline code or raw data files are updated
-# #   schedule      — runs every Monday at 07:00 UTC to check for drift on the
-# #                   latest data, regardless of code changes
-# #
-# # Jobs
-# # ----
-# #   validate         → data quality gate before any training runs
-# #   train-and-detect → full pipeline (Steps 1–9.1), logs to W&B
-# #   mitigate         → Step 10 only if drift was detected (conditional job)
-# #
-# # Setup required
-# # --------------
-# #   1. Add WANDB_API_KEY to your repository Secrets
-# #      (Settings → Secrets and variables → Actions → New repository secret)
-# #   2. Place raw parquet files in data/raw/ or configure a data-fetch step
-# #      to download them from cloud storage (S3, GCS, Azure Blob, etc.)
+# NYC TLC — ML Pipeline CI/CD
+# ==============================
+#
+# This workflow automates the NYC TLC ML pipeline. It runs the entire training
+# and drift detection pipeline, and conditionally triggers alert jobs.
+#
+# Triggers
+# --------
+#   workflow_dispatch - manually run via GitHub UI with configurable inputs:
+#                       * wandb_project: Target Weights & Biases project
+#                       * sample_size: Data subsampling limit (e.g. 5000) for smoke tests
+#                       * tuning_sample_size: Subsampling limit for sweeps
+#                       * act: Run a specific Act (1-6) or leave empty for all
+#   push to main      - (commented out) triggers execution on any code/data change
+#   schedule          - (commented out) triggers weekly check every Monday at 07:00 UTC
+#
+# Jobs
+# ----
+#   validate         → (commented out) data validation job
+#   train-and-detect → runs pipeline.py orchestration, logs to W&B, and checks for drift
+#   notify-on-drift  → (commented out) triggers terminal notification if drift was detected
+#
+# Setup required
+# --------------
+#   1. Add WANDB_API_KEY to your repository Secrets
+#   2. Add GEMINI_API_KEY to your repository Secrets (for Google AI integrations)
 
-# name: ML Pipeline — Drift Monitoring
+name: NYC TLC ML Pipeline — Drift Monitoring
 
-# on:
-#   workflow_dispatch: # This line enables the manual "Run workflow" button
-#     inputs:
-#       wandb_project:
-#         description: 'W&B project name to log runs into'
-#         required: false
-#         default: 'dsma-lecture4_tests'
-#       reason:
-#         description: 'Reason for running'
-#         required: false
-#         default: 'Manual trigger'
-#   push:
-#     branches: [main]
-#     paths:
-#       - "data/raw/**.parquet"   # new data landed
-#       - "src/**.py"             # module changed
-#       - "pipeline.py"           # orchestration changed
-#       - "requirements.txt"      # dependency changed
-#   schedule:
-#     - cron: "0 7 * * 1"         # every Monday at 07:00 UTC
+on:
+  workflow_dispatch:
+    inputs:
+      wandb_project:
+        description: 'Weights & Biases project name to log metrics'
+        required: false
+        default: 'dsma-nyc-tlc-taxi-test2'
+      sample_size:
+        description: 'Row count for training/testing raw data (Smoke Test). Set empty for full run.'
+        required: false
+        default: '5000'
+      tuning_sample_size:
+        description: 'Subsample size for hyperparameter tuning sweeps'
+        required: false
+        default: '1000'
+      act:
+        description: 'Specify Act (1-6) to run only a single phase. Leave empty to run full pipeline.'
+        required: false
+        default: ''
 
-# jobs:
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - "data/raw/**.parquet"
+  #     - "src/**.py"
+  #     - "pipeline.py"
+  #     - "requirements.txt"
 
-#   # ── Job 1: Data validation ───────────────────────────────────────────────────
-#   # validate:
-#   #   name: Install dependencies
-#   #   runs-on: ubuntu-latest
+  # schedule:
+  #   - cron: "0 7 * * 1"
 
-#   #   steps:
-#   #     - name: Checkout repository
-#   #       uses: actions/checkout@v4
+jobs:
 
-#   #     - name: Set up Python
-#   #       uses: actions/setup-python@v5
-#   #       with:
-#   #         python-version: "3.11"
-#   #         cache: "pip"
+  # ── Job 1: Data validation (Optional/Commented out) ─────────────────────────
+  # This job is commented out because validation is integrated into Act 1 of pipeline.py.
+  # validate:
+  #   name: Validate raw data quality
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.11"
+  #         cache: "pip"
+  #     - name: Install dependencies
+  #       run: pip install -r requirements.txt
 
-#   #     - name: Install dependencies
-#   #       run: pip install -r requirements.txt
+  # ── Job 2: Run pipeline and detect drift ────────────────────────────────────
+  train-and-detect:
+    name: Run ML Pipeline
+    runs-on: ubuntu-latest
 
-#       # - name: Run data validation
-#       #   run: |
-#       #     python - <<'EOF'
-#       #     from src.validation import validate_nyc_taxi_parquet
-#       #     result = validate_nyc_taxi_parquet("data/raw/yellow_tripdata_2024-01.parquet")
-#       #     print(result)
-#       #     if not result["success"]:
-#       #         print("in the loop")
-#       #         failed = [r for r in result["results"] if not r["passed"]]
-#       #         print(f"Validation failed ({len(failed)} checks):")
-#       #         for r in failed:
-#       #             print(f"  • {r['name']}: {r['detail']}")
-#       #         raise SystemExit(1)
-#       #     print(f"Validation passed — {len(result['results'])} checks OK")
-#       #     EOF
+    env:
+      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-#   # ── Job 2: Train + drift detection ──────────────────────────────────────────
-#   train-and-detect:
-#     name: Train pipeline + detect drift
-#     runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-#     env:
-#       WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
 
-#     steps:
-#       - name: Checkout repository
-#         uses: actions/checkout@v4
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
-#       - name: Set up Python
-#         uses: actions/setup-python@v5
-#         with:
-#           python-version: "3.11"
-#           cache: "pip"
+      - name: Run pipeline script
+        run: |
+          python pipeline.py \
+            --wandb-project "${{ inputs.wandb_project }}" \
+            ${{ inputs.sample_size != '' && format('--sample-size {0}', inputs.sample_size) || '' }} \
+            ${{ inputs.tuning_sample_size != '' && format('--tuning-sample-size {0}', inputs.tuning_sample_size) || '' }} \
+            ${{ inputs.act != '' && format('--act {0}', inputs.act) || '' }}
 
-#       - name: Install dependencies
-#         run: pip install -r requirements.txt
+      - name: Upload pipeline outputs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pipeline-outputs-${{ github.run_id }}
+          path: |
+            outputs/
+            data/processed/drift_eval.parquet
 
-#       - name: Run full pipeline
-#         run: python pipeline.py --wandb-project "${{ inputs.wandb_project || 'dsma-lecture4_tests' }}"
+      - name: Check if drift report was produced
+        id: drift-check
+        run: |
+          if [ -f "outputs/evidently_drift_report.html" ]; then
+            echo "drift_detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "drift_detected=false" >> $GITHUB_OUTPUT
+          fi
 
-#       # Upload generated outputs (plots, Evidently HTML report, processed data)
-#       # so you can download and inspect them from the Actions run page.
-#       - name: Upload pipeline outputs
-#         uses: actions/upload-artifact@v4
-#         if: always()
-#         with:
-#           name: pipeline-outputs-${{ github.run_id }}
-#           path: |
-#             outputs/
-#             data/processed/dec_eval.parquet
+    outputs:
+      drift_detected: ${{ steps.drift-check.outputs.drift_detected }}
 
-#       # Write a drift-detected flag that the next job can read.
-#       # pipeline.py exits normally whether or not drift was found, so we check
-#       # the Evidently HTML report as a proxy (it is only written in Step 9.1).
-#       - name: Check if drift report was produced
-#         id: drift-check
-#         run: |
-#           if [ -f "outputs/evidently_drift_report.html" ]; then
-#             echo "drift_detected=true" >> $GITHUB_OUTPUT
-#           else
-#             echo "drift_detected=false" >> $GITHUB_OUTPUT
-#           fi
+  # ── Job 3: Notify on significant drift ──────────────────────────────────────
+  notify-on-drift:
+    name: Notify on drift detected
+    needs: train-and-detect
+    runs-on: ubuntu-latest
+    if: needs.train-and-detect.outputs.drift_detected == 'true'
 
-#     outputs:
-#       drift_detected: ${{ steps.drift-check.outputs.drift_detected }}
+    steps:
+      - name: Download pipeline outputs
+        uses: actions/download-artifact@v4
+        with:
+          name: pipeline-outputs-${{ github.run_id }}
 
-#   # ── Job 3: Notify on significant drift ──────────────────────────────────────
-#   # This job runs only when the pipeline detected drift and produced a report.
-#   # In production you would replace the echo with a Slack / email notification
-#   # or a call to an alerting webhook.
-#   notify-on-drift:
-#     name: Notify on drift detected
-#     needs: train-and-detect
-#     runs-on: ubuntu-latest
-#     if: needs.train-and-detect.outputs.drift_detected == 'true'
-
-#     steps:
-#       - name: Download pipeline outputs
-#         uses: actions/download-artifact@v4
-#         with:
-#           name: pipeline-outputs-${{ github.run_id }}
-
-#       - name: Send drift alert
-#         run: |
-#           echo "========================================"
-#           echo "  DRIFT DETECTED — mitigation was run"
-#           echo "  Check the W&B project for full metrics"
-#           echo "  Evidently report is in the artifacts"
-#           echo "========================================"
-#           # Production example:
-#           # curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
-#           #   -H "Content-type: application/json" \
-#           #   --data '{"text": "Drift detected in NYC TLC pipeline. Check W&B."}'
+      - name: Send drift alert
+        run: |
+          echo "========================================"
+          echo "  DRIFT DETECTED — mitigation was run"
+          echo "  Check the W&B project for full metrics"
+          echo "  Evidently report is in the artifacts"
+          echo "========================================"

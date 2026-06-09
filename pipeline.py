@@ -73,6 +73,7 @@ from src.drift_detection_evidently import (run_evidently_drift_report, parse_dri
                                            run_evidently_concept_drift_report,
                                            parse_concept_drift_results,
                                            select_mitigation_strategy)
+from src.gemini_analyzer          import analyze_drift_with_gemini
 from src.drift_mitigation         import mitigate, plot_mitigation_comparison
 from src.versioning               import log_data_artifact, log_model_artifact, log_feature_artifact
 
@@ -562,6 +563,8 @@ def run_act4(
     """
     _print_header("ACT 4 — Productionize Model (Evidently AI Drift & Mitigation)")
     _print_small_header("4.1 Evidently AI Drift Detection (Train vs. Dec 2024)")
+    
+    ai_summary = None
 
     drift_month_path = Path(drift_raw_parquet)
     if not drift_month_path.exists():
@@ -687,6 +690,21 @@ def run_act4(
     selected_strategy = select_mitigation_strategy(drift_results, concept_drift_results)
     print(f"\n  Selected strategy      : {selected_strategy}")
 
+    # Run Gemini AI Drift Analysis
+    ai_summary = analyze_drift_with_gemini(drift_results, concept_drift_results)
+    if ai_summary:
+        print("\n" + "=" * 60)
+        print("  Gemini AI Drift Analysis Report:")
+        print("=" * 60)
+        print(ai_summary)
+        print("=" * 60 + "\n")
+        
+        # Save analysis report locally as Markdown
+        ai_summary_path = Path("outputs") / "gemini_drift_analysis.md"
+        with open(ai_summary_path, "w", encoding="utf-8") as f:
+            f.write(ai_summary)
+        print(f"  Gemini analysis report saved -> {ai_summary_path}")
+
     # ── Drift Mitigation
     _print_small_header("4.2 Drift Mitigation & Before/After Comparison")
 
@@ -750,12 +768,15 @@ def run_act4(
             "drift_seed":          DRIFT_SEED,
         },
     )
-    mitigation_tracker.log_summary({
+    summary_data = {
         "jan_mae":             float(np.mean(np.abs(y_test_eng.values - y_pred_tuned))),
         "baseline_drift_mae":    baseline_drift_mae,
         "mitigated_drift_mae":   mitigated_drift_mae,
         "mae_improvement_pct": improvement_pct,
-    })
+    }
+    if ai_summary:
+        summary_data["drift_analysis_ai"] = ai_summary
+    mitigation_tracker.log_summary(summary_data)
     mitigation_tracker.log_plot(comparison_fig, "mitigation_comparison")
 
     log_data_artifact(
@@ -796,6 +817,13 @@ def run_act4(
     mitigation_tracker.log_artifact(
         evidently_html, artifact_name="evidently-drift-report", artifact_type="report",
     )
+
+    if ai_summary:
+        ai_summary_path = Path("outputs") / "gemini_drift_analysis.md"
+        if ai_summary_path.exists():
+            mitigation_tracker.log_artifact(
+                ai_summary_path, artifact_name="gemini-drift-analysis", artifact_type="report"
+            )
 
     url = mitigation_tracker.finish()
     if url:

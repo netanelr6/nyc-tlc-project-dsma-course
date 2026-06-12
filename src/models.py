@@ -33,6 +33,7 @@ def run_live_timer(stop_event, message):
 
 from sklearn.linear_model    import LinearRegression
 from sklearn.ensemble        import RandomForestRegressor, HistGradientBoostingRegressor  # noqa: F401
+from sklearn.tree            import DecisionTreeRegressor
 from sklearn.neural_network  import MLPRegressor
 from sklearn.svm             import LinearSVR
 from sklearn.base            import clone
@@ -56,11 +57,18 @@ except ImportError:
 CANDIDATE_MODELS = {
     "linear_regression": LinearRegression(),
 
+    "decision_tree": DecisionTreeRegressor(
+        max_depth=8,
+        min_samples_leaf=1000,
+        max_features="sqrt",
+        random_state=42,
+    ),
+
     "random_forest": RandomForestRegressor(
-        n_estimators=50,
+        n_estimators=20,
         max_depth=10,
-        min_samples_leaf=50,
-        max_samples=0.1,
+        min_samples_leaf=100,
+        max_samples=0.01,
         n_jobs=-1,
         random_state=42,
     ),

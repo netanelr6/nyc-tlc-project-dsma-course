@@ -33,10 +33,12 @@ import pandas as pd
 from pathlib                     import Path
 from sklearn.ensemble            import RandomForestRegressor, HistGradientBoostingRegressor
 from sklearn.linear_model        import LinearRegression, Ridge
+from sklearn.tree                import DecisionTreeRegressor
 from sklearn.neural_network      import MLPRegressor
 from sklearn.svm                 import LinearSVR
 from sklearn.model_selection     import cross_val_score, cross_validate
 from sklearn.base                import clone
+
 
 try:
     from xgboost import XGBRegressor
@@ -56,7 +58,7 @@ def get_stratified_tuning_sample(X, y, sample_size=100000, random_state=42):
     Select a representative subsample of the training data stratified by
     pickup_hour and day_of_week to preserve temporal and traffic patterns.
     """
-    if len(X) <= sample_size:
+    if sample_size is None or len(X) <= sample_size:
         return X, y
     
     stratify_cols = []
@@ -98,7 +100,7 @@ def get_stratified_tuning_sample(X, y, sample_size=100000, random_state=42):
 
 # ── Supported models list ─────────────────────────────────────────────────────
 
-supported_models = ["random_forest", "gradient_boosting", "linear_regression", "ridge", "neural_network", "svm"]
+supported_models = ["random_forest", "gradient_boosting", "linear_regression", "ridge", "neural_network", "svm", "decision_tree"]
 if _XGBOOST_AVAILABLE:
     supported_models.append("xgboost")
 
@@ -197,6 +199,15 @@ GRID_SEARCH_CONFIGS = {
             "svm_epsilon":      {"values": [0.1]},
         },
     },
+    "decision_tree": {
+        "method": "grid",
+        "metric": {"name": "mae", "goal": "minimize"},
+        "parameters": {
+            "model_type":       {"value": "decision_tree"},
+            "max_depth":        {"values": [10, 15]},
+            "min_samples_leaf": {"values": [50, 100]},
+        },
+    },
 }
 
 if _XGBOOST_AVAILABLE:
@@ -226,8 +237,15 @@ def _build_model_from_config(cfg):
             max_depth        = cfg.get("max_depth", None),
             min_samples_leaf = int(cfg.get("min_samples_leaf", 50)),
             max_features     = cfg.get("max_features", "sqrt"),
-            max_samples      = 0.1,
+            max_samples      = 0.01,
             n_jobs           = -1,
+            random_state     = 42,
+        )
+    elif model_type == "decision_tree":
+        return DecisionTreeRegressor(
+            max_depth        = cfg.get("max_depth", 10),
+            min_samples_leaf = int(cfg.get("min_samples_leaf", 50)),
+            max_features     = cfg.get("max_features", "sqrt"),
             random_state     = 42,
         )
     elif model_type == "gradient_boosting":

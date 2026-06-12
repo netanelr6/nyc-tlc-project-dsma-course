@@ -1,5 +1,10 @@
 import os
-import google.generativeai as genai
+try:
+    import google.generativeai as genai
+    _GEMINI_AVAILABLE = True
+except ImportError:
+    _GEMINI_AVAILABLE = False
+
 
 # Models to attempt in priority order (hybrid approach with fallback)
 MODELS_TO_TRY = [
@@ -23,6 +28,11 @@ def analyze_drift_with_gemini(drift_results: dict, concept_drift_results: dict) 
     Returns:
         str: AI-generated analysis of the drift report, or None if skipped/failed.
     """
+    if not _GEMINI_AVAILABLE:
+        print("\n  [Gemini AI] 'google-generativeai' package is not installed.")
+        print("              Skipping AI-assisted drift analysis.")
+        return None
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         print("\n  [Gemini AI] GEMINI_API_KEY environment variable not found.")

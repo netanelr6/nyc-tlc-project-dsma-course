@@ -1,7 +1,14 @@
 # Data files (Never upload to GitHub!)
 *.parquet
 *.csv
+!notebooks/taxi_zone_lookup.csv
 *.pkl
+
+# Allow tracking model files in the git repository
+!models/
+!models/**/*.pkl
+!models/**/*.json
+
 
 
 # Python Virtual Environments

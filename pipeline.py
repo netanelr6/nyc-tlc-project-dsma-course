@@ -105,7 +105,7 @@ SCALER_SAVE_PATH_ENGINEERD    = "data/feature_stores/engineered_scaler.pkl"
 DRIFT_TRAIN_SAMPLE            = 20000
 DRIFT_EVAL_SAMPLE             = 5000
 DRIFT_SEED                    = 42
-DRIFT_DOWNLOAD_URL            = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-12.parquet"
+DRIFT_DOWNLOAD_URL            = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-2.parquet"
 RANDOM_SWEEP_RUNS             = 12
 GRID_SWEEP_RUNS               = 6
 LOOKUP_CSV_PATH               = "notebooks/taxi_zone_lookup.csv"
@@ -115,7 +115,7 @@ LOOKUP_CSV_PATH               = "notebooks/taxi_zone_lookup.csv"
 
 WANDB_PROJECT = "dsma-nyc-tlc-taxi-test2"
 WANDB_ENTITY  = "dsma_fit_happens"
-TUNING_SAMPLE_SIZE = 2_500_000
+TUNING_SAMPLE_SIZE = None #2_500_000
 WANDB_MAX_TABLE_ROWS = 50_000
 
 EVIDENTLY_DRIFT_REF_LIMIT = 100_000
@@ -448,7 +448,10 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
     t0 = time.time()
     
     # Perform Stratified Subsampling for sweeps
-    print(f"  Preparing stratified sample of {tuning_sample_size:,} rows for tuning sweeps...")
+    if tuning_sample_size is not None:
+        print(f"  Preparing stratified sample of {tuning_sample_size:,} rows for tuning sweeps...")
+    else:
+        print("  Using full dataset (no subsampling) for tuning sweeps...")
     X_train_tuning, y_train_tuning = get_stratified_tuning_sample(
         X_train_eng, y_train_eng, sample_size=tuning_sample_size, random_state=42
     )
@@ -1100,7 +1103,7 @@ if __name__ == "__main__":
                         help="W&B entity namespace to log runs into")
     parser.add_argument("--sample-size", type=_int_or_none, default=None,
                         help="Sample size for training and testing raw data (for smoke testing, or 'None')")
-    parser.add_argument("--tuning-sample-size", type=int, default=TUNING_SAMPLE_SIZE,
+    parser.add_argument("--tuning-sample-size", type=_int_or_none, default=TUNING_SAMPLE_SIZE,
                         help="Sample size for hyperparameter tuning sweeps (stratified by hour and day)")
     parser.add_argument("--wandb-max-table-rows", type=int, default=WANDB_MAX_TABLE_ROWS,
                         help="Maximum rows to log to W&B interactive tables (subsampled if exceeded)")

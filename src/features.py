@@ -17,6 +17,7 @@ The pipeline will execute them in order and return a clean feature DataFrame.
 """
 
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from pathlib import Path
 import joblib
@@ -153,29 +154,79 @@ def _add_time_of_day_bucket(df):
 
 # ── Domain-driven features ────────────────────────────────────────────────────
 
+_ZONES_DF_CACHED = None
 _ZONES_CACHED = None
 _MANHATTAN_SOUTH_96 = None
 _MANHATTAN_ZONES = None
 
-def _get_zone_mappings():
-    global _ZONES_CACHED, _MANHATTAN_SOUTH_96, _MANHATTAN_ZONES
-    if _ZONES_CACHED is None:
+def _get_zone_df():
+    global _ZONES_DF_CACHED
+    if _ZONES_DF_CACHED is None:
         try:
             lookup_path = Path(__file__).parent.parent / "notebooks" / "taxi_zone_lookup.csv"
             if not lookup_path.exists():
                 lookup_path = Path(__file__).parent.parent / "taxi_zone_lookup.csv"
             
             if lookup_path.exists():
-                zones_df = pd.read_csv(lookup_path)
-                _MANHATTAN_ZONES = set(zones_df[zones_df["Borough"] == "Manhattan"]["LocationID"].tolist())
-                _MANHATTAN_SOUTH_96 = set(zones_df[(zones_df["Borough"] == "Manhattan") & (zones_df["service_zone"] == "Yellow Zone")]["LocationID"].tolist())
+                _ZONES_DF_CACHED = pd.read_csv(lookup_path)
             else:
-                raise FileNotFoundError()
+                _ZONES_DF_CACHED = pd.DataFrame(columns=["LocationID", "Borough", "Zone", "service_zone"])
         except Exception:
+            _ZONES_DF_CACHED = pd.DataFrame(columns=["LocationID", "Borough", "Zone", "service_zone"])
+    return _ZONES_DF_CACHED
+
+def _get_zone_mappings():
+    global _ZONES_CACHED, _MANHATTAN_SOUTH_96, _MANHATTAN_ZONES
+    if _ZONES_CACHED is None:
+        zones_df = _get_zone_df()
+        if not zones_df.empty:
+            _MANHATTAN_ZONES = set(zones_df[zones_df["Borough"] == "Manhattan"]["LocationID"].tolist())
+            _MANHATTAN_SOUTH_96 = set(zones_df[(zones_df["Borough"] == "Manhattan") & (zones_df["service_zone"] == "Yellow Zone")]["LocationID"].tolist())
+        else:
             _MANHATTAN_ZONES = {4, 12, 13, 24, 41, 42, 43, 45, 48, 50, 68, 74, 75, 79, 87, 88, 90, 100, 103, 104, 105, 107, 113, 114, 116, 120, 125, 127, 128, 137, 140, 141, 142, 143, 144, 148, 151, 152, 153, 158, 161, 162, 163, 164, 166, 170, 186, 194, 202, 209, 211, 224, 229, 230, 231, 232, 233, 234, 236, 237, 238, 239, 243, 244, 246, 249, 261, 262, 263}
             _MANHATTAN_SOUTH_96 = {4, 12, 13, 24, 43, 45, 48, 50, 68, 79, 87, 88, 90, 100, 103, 104, 105, 107, 113, 114, 125, 137, 140, 141, 142, 143, 144, 148, 151, 158, 161, 162, 163, 164, 170, 186, 194, 209, 211, 224, 229, 230, 231, 232, 233, 234, 236, 237, 238, 239, 246, 249, 261, 262, 263}
         _ZONES_CACHED = True
     return _MANHATTAN_ZONES, _MANHATTAN_SOUTH_96
+
+def _add_geographic_features(df):
+    """
+    Map PULocationID and DOLocationID to Borough and service_zone,
+    then apply One-Hot Encoding with predefined categories.
+    """
+    zones_df = _get_zone_df()
+    
+    # Define known categories
+    BOROUGHS = ["Manhattan", "Brooklyn", "Queens", "Bronx", "Staten Island", "EWR", "Unknown"]
+    SERVICE_ZONES = ["Yellow Zone", "Boro Zone", "Airports", "EWR", "Unknown"]
+    
+    # Create mapping dictionaries
+    boro_map = dict(zip(zones_df["LocationID"], zones_df["Borough"]))
+    sz_map = dict(zip(zones_df["LocationID"], zones_df["service_zone"]))
+    
+    # Map pickup
+    df["pickup_borough"] = df["PULocationID"].map(boro_map).fillna("Unknown")
+    df["pickup_service_zone"] = df["PULocationID"].map(sz_map).fillna("Unknown")
+    
+    # Map dropoff
+    df["dropoff_borough"] = df["DOLocationID"].map(boro_map).fillna("Unknown")
+    df["dropoff_service_zone"] = df["DOLocationID"].map(sz_map).fillna("Unknown")
+    
+    # Ensure they are categorical types with fixed categories so get_dummies produces consistent columns
+    df["pickup_borough"] = pd.Categorical(df["pickup_borough"], categories=BOROUGHS)
+    df["pickup_service_zone"] = pd.Categorical(df["pickup_service_zone"], categories=SERVICE_ZONES)
+    df["dropoff_borough"] = pd.Categorical(df["dropoff_borough"], categories=BOROUGHS)
+    df["dropoff_service_zone"] = pd.Categorical(df["dropoff_service_zone"], categories=SERVICE_ZONES)
+    
+    # One-hot encode using pd.get_dummies
+    df = pd.get_dummies(
+        df, 
+        columns=["pickup_borough", "pickup_service_zone", "dropoff_borough", "dropoff_service_zone"],
+        prefix=["pickup_boro", "pickup_sz", "dropoff_boro", "dropoff_sz"],
+        dtype="int8"
+    )
+    
+    return df
+
 
 def _add_domain_features(df):
     """
@@ -321,9 +372,10 @@ FEATURE_CREATION_STEPS = [
     _add_is_weekend,               # 3. weekend flag   (needs day_of_week)
     _add_time_of_day_bucket,       # 4. rush/off-peak/overnight + is_rush_hour (needs pickup_hour)
     _add_domain_features,          # 5. domain-based TLC surcharges (JFK, LGA, EWR, congestion)
-    # _add_distance_x_time_of_day,   # 6. interaction    (needs trip_distance, time_of_day_bucket)
-    # _add_pickup_zone_x_hour,       # 7. interaction    (needs PULocationID, pickup_hour)
-    # _add_distance_x_rush_hour,     # 8. interaction    (needs trip_distance, is_rush_hour) #----------------------------------------------> לסדר את זה אחר כך' ולהתייעץ על זה עם וויקרם
+    _add_geographic_features,      # 6. geographic features (boroughs and service zones OHE)
+    # _add_distance_x_time_of_day,   # 7. interaction    (needs trip_distance, time_of_day_bucket)
+    # _add_pickup_zone_x_hour,       # 8. interaction    (needs PULocationID, pickup_hour)
+    # _add_distance_x_rush_hour,     # 9. interaction    (needs trip_distance, is_rush_hour) #----------------------------------------------> לסדר את זה אחר כך' ולהתייעץ על זה עם וויקרם
 ]
 
 FEATURE_TRANSFORMATION_STEPS = [
@@ -339,6 +391,25 @@ BASELINE_FEATURE_COLS = [
     "pickup_hour",
     "day_of_week"
 ]
+
+
+def optimize_dataframe_dtypes(df):
+    """Downcasts float and integer columns to save memory."""
+    for col in df.columns:
+        dt = df[col].dtype
+        if dt == 'float64':
+            df[col] = df[col].astype('float32')
+        elif dt in ['int64', 'int32']:
+            min_val, max_val = df[col].min(), df[col].max()
+            if min_val >= -128 and max_val <= 127:
+                df[col] = df[col].astype('int8')
+            elif min_val >= -32768 and max_val <= 32767:
+                df[col] = df[col].astype('int16')
+            else:
+                df[col] = df[col].astype('int32')
+        elif dt == 'object':
+            df[col] = df[col].astype('category')
+    return df
 
 
 def run_baseline_pipeline(df, scaler=None, is_training=True, scaler_save_path=None):
@@ -393,7 +464,9 @@ def run_baseline_pipeline(df, scaler=None, is_training=True, scaler_save_path=No
         df[scale_cols] = scaler.transform(df[scale_cols])
 
     keep = BASELINE_FEATURE_COLS + [TARGET_COL]
-    return df[keep], scaler
+    res_df = df[keep].copy()
+    res_df = optimize_dataframe_dtypes(res_df)
+    return res_df, scaler
 
 
 def run_feature_pipeline(df, scaler=None, is_training=True, custom_creation_steps=None, scaler_save_path=None):
@@ -449,6 +522,8 @@ def run_feature_pipeline(df, scaler=None, is_training=True, custom_creation_step
     for step in FEATURE_TRANSFORMATION_STEPS:
         df = step(df)
 
+    df = optimize_dataframe_dtypes(df)
+
     # ── Step 4: Feature scaling ────────────────────────────────────────────────
     scale_cols = [c for c in SCALE_FEATURES if c in df.columns]
     if is_training:
@@ -469,4 +544,5 @@ def run_feature_pipeline(df, scaler=None, is_training=True, custom_creation_step
     cols_to_drop = LEAKY_COLUMNS + _DATETIME_COLS_TO_DROP 
     df = df.drop(columns=[c for c in cols_to_drop if c in df.columns])
 
+    df = optimize_dataframe_dtypes(df)
     return df, scaler if is_training else None

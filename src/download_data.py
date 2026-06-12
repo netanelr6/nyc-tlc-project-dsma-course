@@ -22,9 +22,10 @@ DATA_DIR = "data/raw"
 # Values are mappings of Year (int) to List of months (list of ints).
 TARGETS_TO_DOWNLOAD = {
     "train": {
-        # 2024: [1, 3], # for small test
-        2024: list(range(1, 13)),  # Full year 2024 (Jan - Dec)
-        2025: list(range(1, 13)),  # Full year 2025 (Jan - Dec)
+        2024: [1, 2], 
+        2025: [1, 2], 
+        # 2024: list(range(1, 13)),  # Full year 2024 (Jan - Dec)
+        # 2025: list(range(1, 13)),  # Full year 2025 (Jan - Dec)
     },
     "test": {
         # 2025: [1,2],  #small test 

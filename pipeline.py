@@ -91,7 +91,7 @@ MODEL_DIR_ENGINEERED          = "models/engineered"
 MODEL_DIR_TUNED               = "models/winning_model"
 MODEL_DIR_MITIGATED           = "models/mitigated"
 PLOTS_DIR                     = "outputs/plots"
-DRIFT_RAW_PARQUET             = "data/yellow_tripdata_2025-2.parquet" #important to update by the latest monthly data, that the model has not seen, for drift detection
+DRIFT_RAW_PARQUET             = "data/yellow_tripdata_2025-12.parquet" #important to update by the latest monthly data, that the model has not seen, for drift detection
 
 # Feature and scaler storage paths
 BASELINE_TRAIN_PARQUET        = "data/processed/baseline_train.parquet"
@@ -105,7 +105,7 @@ SCALER_SAVE_PATH_ENGINEERD    = "data/feature_stores/engineered_scaler.pkl"
 DRIFT_TRAIN_SAMPLE            = None
 DRIFT_EVAL_SAMPLE             = None
 DRIFT_SEED                    = 42
-DRIFT_DOWNLOAD_URL            = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-2.parquet"
+DRIFT_DOWNLOAD_URL            = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-12.parquet"
 RANDOM_SWEEP_RUNS             = 20
 GRID_SWEEP_RUNS               = 10
 LOOKUP_CSV_PATH               = "notebooks/taxi_zone_lookup.csv"

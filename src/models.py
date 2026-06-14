@@ -114,7 +114,7 @@ def get_candidate_models():
     return {name: clone(model) for name, model in CANDIDATE_MODELS.items()}
 
 
-def train_all_models(X_train, y_train, model_dir):
+def train_all_models(X_train, y_train, model_dir, nn_limit=100000, svm_limit=100000):
     """
     Train every candidate model and save each to disk.
 
@@ -122,6 +122,8 @@ def train_all_models(X_train, y_train, model_dir):
         X_train   : pd.DataFrame of training features
         y_train   : pd.Series   of training labels (trip_duration_minutes)
         model_dir : str | Path  directory where .pkl files will be written
+        nn_limit  : int | None  subsample limit for Neural Network training (or None)
+        svm_limit : int | None  subsample limit for SVM training (or None)
 
     Returns:
         dict mapping model name → fitted model object
@@ -143,13 +145,13 @@ def train_all_models(X_train, y_train, model_dir):
             print(f"  Training {name} ...")
 
         # Subsample neural network and SVM training data to prevent CPU slowdown on large datasets
-        if name == "neural_network" and len(X_train) > 100_000:
-            print(f"  [Info] Subsampling training data to 100,000 samples specifically for {name} to prevent CPU slowdown.")
-            X_tr = X_train.sample(n=100_000, random_state=42)
+        if name == "neural_network" and nn_limit is not None and len(X_train) > nn_limit:
+            print(f"  [Info] Subsampling training data to {nn_limit:,} samples specifically for {name} to prevent CPU slowdown.")
+            X_tr = X_train.sample(n=nn_limit, random_state=42)
             y_tr = y_train.loc[X_tr.index]
-        elif name == "svm" and len(X_train) > 2_500_000:
-            print(f"  [Info] Subsampling training data to 100,000 samples specifically for {name} to prevent CPU slowdown.")
-            X_tr = X_train.sample(n=100_000, random_state=42)
+        elif name == "svm" and svm_limit is not None and len(X_train) > svm_limit:
+            print(f"  [Info] Subsampling training data to {svm_limit:,} samples specifically for {name} to prevent CPU slowdown.")
+            X_tr = X_train.sample(n=svm_limit, random_state=42)
             y_tr = y_train.loc[X_tr.index]
         else:
             X_tr = X_train

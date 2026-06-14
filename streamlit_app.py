@@ -137,13 +137,42 @@ def get_coordinates(location_id, borough_name):
     return (centroid[0] + jitter_lat, centroid[1] + jitter_lon)
 
 # ── Load Metadata & Models ───────────────────────────────────────────────────
+import json
 
 @st.cache_resource
 def load_assets():
     """Load metadata lookup, fitted scaler, and trained champion model."""
     lookup_path = Path("notebooks/taxi_zone_lookup.csv")
     scaler_path = Path("models/engineered/scaler.pkl")
-    model_path  = Path("models/engineered/gradient_boosting.pkl")
+    
+    # Try to load the tuned winning model first, fall back to engineered gradient_boosting
+    winning_dir = Path("models/winning_model")
+    config_path = winning_dir / "best_config.json"
+    
+    model_path = None
+    if config_path.exists():
+        try:
+            with open(config_path, "r") as f:
+                best_config = json.load(f)
+            model_type = best_config.get("model_type")
+            if model_type:
+                potential_path = winning_dir / f"tuned_{model_type}.pkl"
+                if potential_path.exists():
+                    model_path = potential_path
+                    st.info(f"Loaded Tuned Champion Model: `{model_type}` from `{winning_dir.name}`")
+        except Exception:
+            pass
+
+    if model_path is None:
+        # Fallback to check tuned files directly
+        tuned_files = list(winning_dir.glob("tuned_*.pkl")) if winning_dir.exists() else []
+        if tuned_files:
+            model_path = tuned_files[0]
+            st.info(f"Loaded Tuned Model: `{model_path.name}` from `{winning_dir.name}`")
+        else:
+            # Fallback to default engineered gradient_boosting
+            model_path = Path("models/engineered/gradient_boosting.pkl")
+            st.warning("Tuned champion model not found. Falling back to default engineered gradient_boosting.pkl")
     
     if not lookup_path.exists():
         st.error(f"Metadata file lookup missing at `{lookup_path}`.")

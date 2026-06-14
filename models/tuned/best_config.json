@@ -1,5 +1,0 @@
-{
-    "max_depth": 15,
-    "model_type": "decision_tree",
-    "min_samples_leaf": 50
-}

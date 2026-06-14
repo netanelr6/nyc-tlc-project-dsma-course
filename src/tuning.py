@@ -302,15 +302,30 @@ def _build_model_from_config(cfg):
 
 # ── Sweep training closure ────────────────────────────────────────────────────
 
-def _make_train_fn(X_train, y_train):
+def neg_mape_scorer(estimator, X, y):
+    """
+    Custom scorer to compute negative Mean Absolute Percentage Error (MAPE).
+    Excludes values where y < 1.0 (following the compute_metrics logic).
+    Returns negative value since sklearn maximizes scorers.
+    """
+    y_pred = estimator.predict(X)
+    y_true = np.asarray(y, dtype=float)
+    mask = y_true >= 1.0
+    if not np.any(mask):
+        return 0.0
+    mape = np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask])) * 100
+    return -float(mape)
+
+
+def _make_train_fn(X_train, y_train, nn_limit=100000, svm_limit=100000):
     """
     Return a zero-argument callable suitable for wandb.agent().
 
     The closure captures X_train / y_train so the agent can call it
     without arguments.  Each invocation:
       1. Reads hyperparameters from wandb.config
-      2. Runs 3-fold CV and computes mean MAE and RMSE using cross_validate
-      3. Logs mae and rmse to W&B
+      2. Runs 3-fold CV and computes mean MAE, RMSE and MAPE using cross_validate
+      3. Logs mae, rmse and mape to W&B
     """
     def train_fn():
         with wandb.init() as run:
@@ -318,11 +333,11 @@ def _make_train_fn(X_train, y_train):
             model   = _build_model_from_config(cfg)
 
             model_type = cfg.get("model_type", "random_forest")
-            if model_type == "neural_network" and len(X_train) > 100_000:
-                X_tr = X_train.sample(n=100_000, random_state=42)
+            if model_type == "neural_network" and nn_limit is not None and len(X_train) > nn_limit:
+                X_tr = X_train.sample(n=nn_limit, random_state=42)
                 y_tr = y_train.loc[X_tr.index]
-            elif model_type == "svm" and len(X_train) > 2_500_000:
-                X_tr = X_train.sample(n=2_500_000, random_state=42)
+            elif model_type == "svm" and svm_limit is not None and len(X_train) > svm_limit:
+                X_tr = X_train.sample(n=svm_limit, random_state=42)
                 y_tr = y_train.loc[X_tr.index]
             else:
                 X_tr = X_train
@@ -333,14 +348,16 @@ def _make_train_fn(X_train, y_train):
                 cv      = 3,
                 scoring = {
                     "mae": "neg_mean_absolute_error",
-                    "mse": "neg_mean_squared_error"
+                    "mse": "neg_mean_squared_error",
+                    "mape": neg_mape_scorer
                 },
                 n_jobs  = None,
             )
             mae  = float(-scores["test_mae"].mean())
             rmse = float((-scores["test_mse"].mean()) ** 0.5)
+            mape = float(-scores["test_mape"].mean())
 
-            run.log({"mae": mae, "rmse": rmse})
+            run.log({"mae": mae, "rmse": rmse, "mape": mape})
 
     return train_fn
 
@@ -369,7 +386,8 @@ def _generate_combinations(parameters):
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def run_wandb_sweep(X_train, y_train, sweep_config: dict,
-                    project: str, entity: str = None, n_runs: int = 15):
+                    project: str, entity: str = None, n_runs: int = 15,
+                    nn_limit=100000, svm_limit=100000):
     """
     Register a W&B sweep, run `n_runs` trials, and return the best config.
     If W&B is offline or not logged in, falls back to local tuning using cross-validation.
@@ -381,6 +399,8 @@ def run_wandb_sweep(X_train, y_train, sweep_config: dict,
         project      : W&B project name
         n_runs       : number of trials to run (ignored for grid sweeps,
                        which always run all combinations)
+        nn_limit     : int | None  subsample limit for Neural Network training (or None)
+        svm_limit    : int | None  subsample limit for SVM training (or None)
 
     Returns:
         sweep_id  (str)  : W&B sweep ID — "local-sweep" if run offline
@@ -398,7 +418,7 @@ def run_wandb_sweep(X_train, y_train, sweep_config: dict,
 
     if is_logged_in:
         sweep_id = wandb.sweep(sweep_config, project=project, entity=entity)
-        train_fn = _make_train_fn(X_train, y_train)
+        train_fn = _make_train_fn(X_train, y_train, nn_limit=nn_limit, svm_limit=svm_limit)
         wandb.agent(sweep_id, function=train_fn, count=n_runs)
 
         api  = wandb.Api()
@@ -410,7 +430,19 @@ def run_wandb_sweep(X_train, y_train, sweep_config: dict,
             raise RuntimeError("Sweep produced no results -- check W&B connection.")
 
         best = min(completed, key=lambda r: r.summary["mae"])
-        return sweep_id, best.config, best.summary["mae"]
+        print(f"\n  \033[92m[Tuning] Sweep {sweep_id} complete!\033[0m")
+        print(f"    - Best Run Name: \033[96m{best.name}\033[0m")
+        print(f"    - Best Run ID:   \033[96m{best.id}\033[0m")
+        print(f"    - Best Run MAE:  ${best.summary.get('mae', 0.0):.4f}")
+        if "mape" in best.summary:
+            print(f"    - Best Run MAPE: {best.summary.get('mape', 0.0):.2f}%")
+        
+        best_config_with_metadata = best.config.copy()
+        best_config_with_metadata["run_name"] = best.name
+        best_config_with_metadata["run_id"] = best.id
+        best_config_with_metadata["sweep_id"] = sweep_id
+        
+        return sweep_id, best_config_with_metadata, best.summary["mae"]
     else:
         print("\033[93m[Tuning] W&B is not logged in or offline. Running local hyperparameter search...\033[0m")
         combinations = _generate_combinations(sweep_config["parameters"])
@@ -446,33 +478,37 @@ def run_wandb_sweep(X_train, y_train, sweep_config: dict,
                     print(f"    Trial {i}/{len(selected_combs)}: {comb} ...")
 
                 model_type = comb.get("model_type")
-                if model_type == "neural_network" and len(X_train) > 100_000:
-                    X_tr = X_train.sample(n=100_000, random_state=42)
+                if model_type == "neural_network" and nn_limit is not None and len(X_train) > nn_limit:
+                    X_tr = X_train.sample(n=nn_limit, random_state=42)
                     y_tr = y_train.loc[X_tr.index]
-                elif model_type == "svm" and len(X_train) > 2_500_000:
-                    X_tr = X_train.sample(n=2_500_000, random_state=42)
+                elif model_type == "svm" and svm_limit is not None and len(X_train) > svm_limit:
+                    X_tr = X_train.sample(n=svm_limit, random_state=42)
                     y_tr = y_train.loc[X_tr.index]
                 else:
                     X_tr = X_train
                     y_tr = y_train
 
-                mae_scores = cross_val_score(
+                scores = cross_validate(
                     model, X_tr, y_tr,
                     cv=3,
-                    scoring="neg_mean_absolute_error",
+                    scoring={
+                        "mae": "neg_mean_absolute_error",
+                        "mape": neg_mape_scorer
+                    },
                     n_jobs=None
                 )
-                mae = float(-mae_scores.mean())
+                mae = float(-scores["test_mae"].mean())
+                mape = float(-scores["test_mape"].mean())
                 duration = time.time() - t0
 
                 if is_tty:
                     stop_event.set()
                     timer_thread.join()
-                    sys.stdout.write(f"\r\033[33m    [Duration] Trial {i}/{len(selected_combs)} finished in {duration:.2f}s -> MAE: ${mae:.2f}\033[0m\n")
+                    sys.stdout.write(f"\r\033[33m    [Duration] Trial {i}/{len(selected_combs)} finished in {duration:.2f}s -> MAE: ${mae:.2f}, MAPE: {mape:.2f}%\033[0m\n")
                     print(f"      Config: {comb}")
                     sys.stdout.flush()
                 else:
-                    print(f"\033[33m    [Duration] Trial {i}/{len(selected_combs)} finished in {duration:.2f}s -> MAE: ${mae:.2f}\033[0m")
+                    print(f"\033[33m    [Duration] Trial {i}/{len(selected_combs)} finished in {duration:.2f}s -> MAE: ${mae:.2f}, MAPE: {mape:.2f}%\033[0m")
 
                 if mae < best_mae:
                     best_mae = mae
@@ -486,7 +522,8 @@ def run_wandb_sweep(X_train, y_train, sweep_config: dict,
 
 
 def retrain_best_model(best_config: dict, X_train, y_train,
-                       model_dir: str = "models/tuned"):
+                       model_dir: str = "models/winning_model",
+                       nn_limit=100000, svm_limit=100000):
     """
     Build the winning model from its config, retrain on the full training
     set, and save it to disk.
@@ -514,13 +551,13 @@ def retrain_best_model(best_config: dict, X_train, y_train,
     else:
         print(f"  Retraining best {model_type} on full training set...")
 
-    if model_type == "neural_network" and len(X_train) > 100_000:
-        print(f"  [Info] Subsampling training data to 100,000 samples specifically for {model_type} to prevent CPU slowdown.")
-        X_tr = X_train.sample(n=100_000, random_state=42)
+    if model_type == "neural_network" and nn_limit is not None and len(X_train) > nn_limit:
+        print(f"  [Info] Subsampling training data to {nn_limit:,} samples specifically for {model_type} to prevent CPU slowdown.")
+        X_tr = X_train.sample(n=nn_limit, random_state=42)
         y_tr = y_train.loc[X_tr.index]
-    elif model_type == "svm" and len(X_train) > 2_500_000:
-        print(f"  [Info] Subsampling training data to 2,500,000 samples specifically for {model_type} to prevent CPU slowdown.")
-        X_tr = X_train.sample(n=2_500_000, random_state=42)
+    elif model_type == "svm" and svm_limit is not None and len(X_train) > svm_limit:
+        print(f"  [Info] Subsampling training data to {svm_limit:,} samples specifically for {model_type} to prevent CPU slowdown.")
+        X_tr = X_train.sample(n=svm_limit, random_state=42)
         y_tr = y_train.loc[X_tr.index]
     else:
         X_tr = X_train

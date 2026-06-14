@@ -88,10 +88,10 @@ TEST_CLEANED_PARQUET          = "data/processed/Df_test_2026_cleaned.parquet"
 PROCESSED_DIR                 = "data/processed"
 MODEL_DIR_BASELINE            = "models/baseline"
 MODEL_DIR_ENGINEERED          = "models/engineered"
-MODEL_DIR_TUNED               = "models/tuned"
+MODEL_DIR_TUNED               = "models/winning_model"
 MODEL_DIR_MITIGATED           = "models/mitigated"
 PLOTS_DIR                     = "outputs/plots"
-DRIFT_RAW_PARQUET             = "data/yellow_tripdata_2024-12.parquet" #important to update by the latest monthly data, that the model has not seen, for drift detection
+DRIFT_RAW_PARQUET             = "data/yellow_tripdata_2025-2.parquet" #important to update by the latest monthly data, that the model has not seen, for drift detection
 
 # Feature and scaler storage paths
 BASELINE_TRAIN_PARQUET        = "data/processed/baseline_train.parquet"
@@ -102,18 +102,22 @@ SCALER_SAVE_PATH_BSSELINE     = "data/feature_stores/baseline_scaler.pkl"
 SCALER_SAVE_PATH_ENGINEERD    = "data/feature_stores/engineered_scaler.pkl"
 
 # ── Hyperparameters and settings ──────────────────────────────────────────────
-DRIFT_TRAIN_SAMPLE            = 20000
-DRIFT_EVAL_SAMPLE             = 5000
+DRIFT_TRAIN_SAMPLE            = None
+DRIFT_EVAL_SAMPLE             = None
 DRIFT_SEED                    = 42
 DRIFT_DOWNLOAD_URL            = "https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-2.parquet"
-RANDOM_SWEEP_RUNS             = 12
-GRID_SWEEP_RUNS               = 6
+RANDOM_SWEEP_RUNS             = 20
+GRID_SWEEP_RUNS               = 10
 LOOKUP_CSV_PATH               = "notebooks/taxi_zone_lookup.csv"
+
+# Subsampling limits for model training and tuning (to prevent CPU slowdown; set to None to disable)
+NN_LIMIT                      = 1_000_000
+SVM_LIMIT                     = None # 1_000_000
 
 
 # ── W&B configuration ─────────────────────────────────────────────────────────
 
-WANDB_PROJECT = "dsma-nyc-tlc-taxi-test2"
+WANDB_PROJECT = "dsma-nyc-tlc-taxi-test7"
 WANDB_ENTITY  = "dsma_fit_happens"
 TUNING_SAMPLE_SIZE = None #2_500_000
 WANDB_MAX_TABLE_ROWS = 50_000
@@ -371,7 +375,7 @@ def run_act1(sample_size=None):
 
 # ── Act 2 ─────────────────────────────────────────────────────────────────────
 
-def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
+def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000, nn_limit=NN_LIMIT, svm_limit=SVM_LIMIT):
     """
     Act 2 — Model Building & Tuning
     - Step 2.1: Model Training & Evaluation
@@ -418,7 +422,7 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
     t0 = time.time()
     X_train_eng = eng_train.drop(columns=[TARGET_COL])
     y_train_eng = eng_train[TARGET_COL]
-    train_all_models(X_train_eng, y_train_eng, MODEL_DIR_ENGINEERED)
+    train_all_models(X_train_eng, y_train_eng, MODEL_DIR_ENGINEERED, nn_limit=nn_limit, svm_limit=svm_limit)
 
     X_test_eng = eng_test.drop(columns=[TARGET_COL])
     y_test_eng = eng_test[TARGET_COL]
@@ -465,6 +469,8 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
         project      = wandb_project,
         entity       = wandb_entity,
         n_runs       = RANDOM_SWEEP_RUNS,
+        nn_limit     = nn_limit,
+        svm_limit    = svm_limit,
     )
     winning_family = best_random_config.get("model_type", "random_forest")
     print(f"\n  Random search complete. Best family: {winning_family}")
@@ -478,6 +484,8 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
         project      = wandb_project,
         entity       = wandb_entity,
         n_runs       = GRID_SWEEP_RUNS,
+        nn_limit     = nn_limit,
+        svm_limit    = svm_limit,
     )
     print(f"\n  Grid search complete. Best config: {best_grid_config}")
 
@@ -487,6 +495,8 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
         X_train     = X_train_eng,
         y_train     = y_train_eng,
         model_dir   = MODEL_DIR_TUNED,
+        nn_limit    = nn_limit,
+        svm_limit   = svm_limit,
     )
     print(f"\033[33m  [Duration] Hyperparameter tuning sweeps & champion retraining finished in {time.time() - t0:.2f}s\033[0m")
 
@@ -502,6 +512,7 @@ def run_act2(wandb_project, wandb_entity, tuning_sample_size=100000):
 def run_act3(
     engineered_test_parquet=ENGINEERED_TEST_PARQUET,
     model_dir_engineered=MODEL_DIR_ENGINEERED,
+    model_dir_tuned=MODEL_DIR_TUNED,
     plots_dir=PLOTS_DIR,
     wandb_project=WANDB_PROJECT,
     wandb_entity=WANDB_ENTITY,
@@ -521,11 +532,23 @@ def run_act3(
     # Evaluate engineered models on the fly to get engineered_results
     engineered_results = evaluate_all_models(X_test_eng, y_test_eng, model_dir_engineered)
 
+    # Evaluate tuned models if they exist
+    all_results = engineered_results.copy()
+    if Path(model_dir_tuned).exists() and any(Path(model_dir_tuned).glob("*.pkl")):
+        tuned_results = evaluate_all_models(X_test_eng, y_test_eng, model_dir_tuned)
+        all_results = pd.concat([all_results, tuned_results], ignore_index=True)
+
     # <> 3.1 Champion Evaluation & Feature Importance <><><><><><><>
     _print_small_header("3.1 Champion Evaluation & Feature Importance")
-    champion_name  = select_champion(engineered_results, metric="mae")
-    champion_model = load_model(champion_name, model_dir_engineered)
-    champion_row   = engineered_results.loc[engineered_results["model"] == champion_name].iloc[0]
+    champion_name  = select_champion(all_results, metric="mae")
+    
+    # Load champion model from the correct directory
+    if champion_name.startswith("tuned_"):
+        champion_model = load_model(champion_name, model_dir_tuned)
+    else:
+        champion_model = load_model(champion_name, model_dir_engineered)
+        
+    champion_row   = all_results.loc[all_results["model"] == champion_name].iloc[0]
 
     plot_feature_importance(
         model         = champion_model,
@@ -642,16 +665,15 @@ def run_act4(
     drift_df["tpep_pickup_datetime"] = pd.to_datetime(drift_df["tpep_pickup_datetime"])
 
     # Split by calendar date — first 3 weeks for mitigation, last week for eval
-    drift_train_raw = (
-        drift_df[drift_df["tpep_pickup_datetime"].dt.day <= 21]
-        .sample(DRIFT_TRAIN_SAMPLE, random_state=DRIFT_SEED)
-        .reset_index(drop=True)
-    )
-    drift_eval_raw = (
-        drift_df[drift_df["tpep_pickup_datetime"].dt.day >= 22]
-        .sample(DRIFT_EVAL_SAMPLE, random_state=DRIFT_SEED)
-        .reset_index(drop=True)
-    )
+    drift_train_raw = drift_df[drift_df["tpep_pickup_datetime"].dt.day <= 21]
+    if DRIFT_TRAIN_SAMPLE is not None:
+        drift_train_raw = drift_train_raw.sample(n=min(DRIFT_TRAIN_SAMPLE, len(drift_train_raw)), random_state=DRIFT_SEED)
+    drift_train_raw = drift_train_raw.reset_index(drop=True)
+
+    drift_eval_raw = drift_df[drift_df["tpep_pickup_datetime"].dt.day >= 22]
+    if DRIFT_EVAL_SAMPLE is not None:
+        drift_eval_raw = drift_eval_raw.sample(n=min(DRIFT_EVAL_SAMPLE, len(drift_eval_raw)), random_state=DRIFT_SEED)
+    drift_eval_raw = drift_eval_raw.reset_index(drop=True)
     print(f"  Drift train set : {len(drift_train_raw):,} rows  (Dec 1–21,  seed={DRIFT_SEED})")
     print(f"  Drift eval set  : {len(drift_eval_raw):,}  rows  (Dec 22–31, seed={DRIFT_SEED})")
 
@@ -1009,12 +1031,34 @@ def run_act6(
     
     # Check if we have production assets
     scaler_path = Path(model_dir_engineered) / "scaler.pkl"
-    model_path  = Path(model_dir_engineered) / "gradient_boosting.pkl" # default model used in app
     lookup_path = Path(LOOKUP_CSV_PATH)
     
+    # Try to resolve tuned model path
+    winning_dir = Path(model_dir_tuned)
+    config_path = winning_dir / "best_config.json"
+    model_path = None
+    if config_path.exists():
+        try:
+            with open(config_path, "r") as f:
+                best_config = json.load(f)
+            model_type = best_config.get("model_type")
+            if model_type:
+                potential_path = winning_dir / f"tuned_{model_type}.pkl"
+                if potential_path.exists():
+                    model_path = potential_path
+        except Exception:
+            pass
+            
+    if model_path is None:
+        tuned_files = list(winning_dir.glob("tuned_*.pkl")) if winning_dir.exists() else []
+        if tuned_files:
+            model_path = tuned_files[0]
+        else:
+            model_path = Path(model_dir_engineered) / "gradient_boosting.pkl"
+            
     all_exist = True
     for p in [scaler_path, model_path, lookup_path]:
-        if p.exists():
+        if p is not None and p.exists():
             print(f"  [OK] Asset verified: '{p}'")
         else:
             print(f"  [MISSING] Asset not found: '{p}'")
@@ -1045,6 +1089,8 @@ def run_pipeline(
     act=None,
     evidently_drift_ref_limit=EVIDENTLY_DRIFT_REF_LIMIT,
     evidently_concept_ref_limit=EVIDENTLY_CONCEPT_REF_LIMIT,
+    nn_limit=NN_LIMIT,
+    svm_limit=SVM_LIMIT,
 ):
     configure_wandb()
     
@@ -1058,6 +1104,8 @@ def run_pipeline(
             wandb_project  = wandb_project,
             wandb_entity   = wandb_entity,
             tuning_sample_size = tuning_sample_size,
+            nn_limit       = nn_limit,
+            svm_limit      = svm_limit,
         )
 
     if act is None or act == 3:
@@ -1065,6 +1113,7 @@ def run_pipeline(
         run_act3(
             wandb_project        = wandb_project,
             wandb_entity         = wandb_entity,
+            model_dir_tuned      = MODEL_DIR_TUNED,
         )
 
     if act is None or act == 4:
@@ -1113,6 +1162,10 @@ if __name__ == "__main__":
                         help="Subsample limit for reference training set in Evidently dataset drift detection (or 'None')")
     parser.add_argument("--evidently-concept-ref-limit", type=_int_or_none, default=EVIDENTLY_CONCEPT_REF_LIMIT,
                         help="Subsample limit for reference test set in Evidently concept drift detection (or 'None')")
+    parser.add_argument("--nn-limit", type=_int_or_none, default=NN_LIMIT,
+                        help="Subsample limit for Neural Network model training (or 'None')")
+    parser.add_argument("--svm-limit", type=_int_or_none, default=SVM_LIMIT,
+                        help="Subsample limit for SVM model training (or 'None')")
     args = parser.parse_args()
     
     run_pipeline(
@@ -1124,4 +1177,6 @@ if __name__ == "__main__":
         act                         = args.act,
         evidently_drift_ref_limit   = args.evidently_drift_ref_limit,
         evidently_concept_ref_limit = args.evidently_concept_ref_limit,
+        nn_limit                    = args.nn_limit,
+        svm_limit                   = args.svm_limit,
     )

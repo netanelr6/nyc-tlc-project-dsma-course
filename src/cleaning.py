@@ -145,13 +145,15 @@ def drop_remaining_nulls(df):
 #     return df
 
 def filter_monetary_logic(df):
-    """Filters out invalid monetary amounts (refunds, errors, below minimum fare)."""
+    """Filters out invalid monetary amounts (refunds, errors, below minimum fare, and extreme outliers)."""
     before = len(df)
-    mask = (df["total_amount"] > 0) & (df["fare_amount"] >= 3.0)
+    # Cap total_amount and fare_amount at $500 to remove extreme target outliers/data errors
+    mask = (df["total_amount"] > 0) & (df["total_amount"] < 500.0) & \
+           (df["fare_amount"] >= 3.0) & (df["fare_amount"] < 500.0)
     df = df[mask]
     dropped = before - len(df)
     if dropped:
-        print(f"  filter_monetary_logic   : dropped {dropped:,} invalid rows")
+        print(f"  filter_monetary_logic   : dropped {dropped:,} invalid/outlier rows")
     return df
 
 def filter_temporal_logic(df):

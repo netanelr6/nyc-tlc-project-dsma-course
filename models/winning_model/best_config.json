@@ -1,5 +1,10 @@
 {
-    "max_depth": 15,
-    "model_type": "decision_tree",
-    "min_samples_leaf": 50
+    "max_depth": 8,
+    "model_type": "gradient_boosting",
+    "n_estimators": 200,
+    "learning_rate": 0.1,
+    "min_samples_leaf": 50,
+    "run_name": "summer-sweep-8",
+    "run_id": "2uia6pz4",
+    "sweep_id": "ibkdtw7e"
 }

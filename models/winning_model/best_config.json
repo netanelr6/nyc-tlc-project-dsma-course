@@ -1,10 +1,11 @@
 {
-    "max_depth": 8,
+    "max_depth": 12,
     "model_type": "gradient_boosting",
-    "n_estimators": 200,
-    "learning_rate": 0.1,
-    "min_samples_leaf": 50,
-    "run_name": "summer-sweep-8",
-    "run_id": "2uia6pz4",
-    "sweep_id": "ibkdtw7e"
+    "n_estimators": 500,
+    "learning_rate": 0.08,
+    "min_samples_leaf": 300,
+    "l2_regularization": 0,
+    "run_name": "fiery-sweep-9",
+    "run_id": "7csem18k",
+    "sweep_id": "al7bicxc"
 }

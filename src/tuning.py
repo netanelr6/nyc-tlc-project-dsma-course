@@ -115,23 +115,28 @@ RANDOM_SEARCH_CONFIG = {
     "metric": {"name": "mae", "goal": "minimize"},
     "parameters": {
         "model_type":       {"values": supported_models},
-        "n_estimators":     {"values": [50, 100, 150, 200]},
-        "max_depth":        {"values": [5, 10, 15, 20]},
-        "min_samples_leaf": {"values": [10, 20, 50, 100]},
-        "learning_rate":    {"values": [0.01, 0.05, 0.1, 0.2]},
-        "max_features":     {"values": ["sqrt", "log2"]},
-        "alpha":            {"values": [0.01, 0.1, 1.0, 10.0]},
+        
+        # Shared tree parameters
+        "n_estimators":     {"values": [200, 300, 400]},
+        "max_depth":        {"values": [10, 12, 15]},
+        "min_samples_leaf": {"values": [100, 150, 200]},
+        "learning_rate":    {"values": [0.05, 0.08, 0.1]},
+        "l2_regularization": {"values": [0.0, 0.01, 0.1]},
+        "max_features":     {"values": ["sqrt"]},
+        
+        # Simple/linear model parameters
+        "alpha":            {"values": [0.1, 1.0, 10.0, 100.0]},
         "fit_intercept":    {"values": [True, False]},
         
-        # Neural Network (MLPRegressor) parameters
+        # Neural Network (MLPRegressor) parameters 
         "nn_epochs":        {"values": [5, 10]},
         "nn_activation":    {"values": ["relu"]},
-        "nn_hidden_layers": {"values": [[32], [50], [32, 16]]},
+        "nn_hidden_layers": {"values": [[32], [32, 16]]},
         "nn_learning_rate": {"values": [0.001, 0.01]},
 
-        # SVM (LinearSVR) parameters
-        "svm_c":            {"values": [0.1, 1.0, 10.0]},
-        "svm_epsilon":      {"values": [0.0, 0.1, 0.2]},
+        # SVM (LinearSVR) parameters 
+        "svm_c":            {"values": [0.1, 1.0]},
+        "svm_epsilon":      {"values": [0.0, 0.1]},
     },
 }
 
@@ -148,9 +153,9 @@ GRID_SEARCH_CONFIGS = {
         "metric": {"name": "mae", "goal": "minimize"},
         "parameters": {
             "model_type":       {"value": "random_forest"},
-            "n_estimators":     {"values": [100, 200]},
-            "max_depth":        {"values": [10, 15]},
-            "min_samples_leaf": {"values": [50, 100]},
+            "n_estimators":     {"values": [200, 300, 400]},
+            "max_depth":        {"values": [10, 12, 15]},
+            "min_samples_leaf": {"values": [100, 150, 200]},
         },
     },
     "gradient_boosting": {
@@ -158,10 +163,11 @@ GRID_SEARCH_CONFIGS = {
         "metric": {"name": "mae", "goal": "minimize"},
         "parameters": {
             "model_type":       {"value": "gradient_boosting"},
-            "n_estimators":     {"values": [100, 200]},
-            "max_depth":        {"values": [5, 8]},
-            "learning_rate":    {"values": [0.05, 0.1]},
-            "min_samples_leaf": {"values": [50]},
+            "n_estimators":     {"values": [300, 400, 500]},
+            "max_depth":        {"values": [12, 15, 18]},
+            "learning_rate":    {"values": [0.08, 0.1, 0.12]},
+            "min_samples_leaf": {"values": [150, 200, 300]},
+            "l2_regularization": {"values": [0.0]},
         },
     },
     "linear_regression": {
@@ -177,7 +183,7 @@ GRID_SEARCH_CONFIGS = {
         "metric": {"name": "mae", "goal": "minimize"},
         "parameters": {
             "model_type":       {"value": "ridge"},
-            "alpha":            {"values": [0.1, 1.0, 10.0]},
+            "alpha":            {"values": [0.1, 1.0, 10.0, 100.0]},
         },
     },
     "neural_network": {
@@ -185,9 +191,9 @@ GRID_SEARCH_CONFIGS = {
         "metric": {"name": "mae", "goal": "minimize"},
         "parameters": {
             "model_type":       {"value": "neural_network"},
-            "nn_epochs":        {"values": [10]},
+            "nn_epochs":        {"values": [5, 10]},
             "nn_activation":    {"values": ["relu"]},
-            "nn_hidden_layers": {"values": [[32]]},
+            "nn_hidden_layers": {"values": [[32], [32, 16]]},
         },
     },
     "svm": {
@@ -196,7 +202,7 @@ GRID_SEARCH_CONFIGS = {
         "parameters": {
             "model_type":       {"value": "svm"},
             "svm_c":            {"values": [0.1, 1.0]},
-            "svm_epsilon":      {"values": [0.1]},
+            "svm_epsilon":      {"values": [0.0, 0.1]},
         },
     },
     "decision_tree": {
@@ -216,9 +222,9 @@ if _XGBOOST_AVAILABLE:
         "metric": {"name": "mae", "goal": "minimize"},
         "parameters": {
             "model_type":       {"value": "xgboost"},
-            "n_estimators":     {"values": [100, 200]},
-            "max_depth":        {"values": [5, 8]},
-            "learning_rate":    {"values": [0.05, 0.1]},
+            "n_estimators":     {"values": [200, 300, 400]},
+            "max_depth":        {"values": [8, 12, 15]},
+            "learning_rate":    {"values": [0.05, 0.08, 0.1]},
         },
     }
 
@@ -254,6 +260,7 @@ def _build_model_from_config(cfg):
             max_depth        = int(cfg.get("max_depth", 5)),
             learning_rate    = float(cfg.get("learning_rate", 0.1)),
             min_samples_leaf = int(cfg.get("min_samples_leaf", 50)),
+            l2_regularization = float(cfg.get("l2_regularization", 0.0)),
             random_state     = 42,
         )
     elif model_type == "xgboost":

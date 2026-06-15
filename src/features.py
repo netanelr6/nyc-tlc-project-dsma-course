@@ -33,6 +33,8 @@ SCALE_FEATURES = [
     "pickup_hour",
     "day_of_week",
     "is_weekend",
+    "is_holiday",
+    "haversine_distance",
     "time_of_day_bucket",
     "pickup_hour_sin",
     "pickup_hour_cos",
@@ -45,6 +47,156 @@ SCALE_FEATURES = [
     "est_airport_fee",
     "est_total_fare_without_tolls"
 ]
+
+BOROUGH_CENTROIDS = {
+    "Manhattan": (40.7831, -73.9712),
+    "Brooklyn": (40.6782, -73.9442),
+    "Queens": (40.7282, -73.7949),
+    "Bronx": (40.8448, -73.8648),
+    "Staten Island": (40.5795, -74.1502),
+    "EWR": (40.6895, -74.1745),
+    "Unknown": (40.7831, -73.9712)
+}
+
+COORD_LOOKUP = {
+    1: (40.6895, -74.1745),   # Newark Airport (EWR)
+    132: (40.6413, -73.7781), # JFK Airport
+    138: (40.7769, -73.8740), # LGA Airport
+    43: (40.7829, -73.9654),  # Central Park
+    230: (40.7580, -73.9855), # Times Square / Theatre District
+    186: (40.7506, -73.9935), # Penn Station / Union Sq West
+    162: (40.7527, -73.9772), # Grand Central / Murray Hill
+    263: (40.7061, -74.0092), # Wall Street / Financial District
+    100: (40.7538, -73.9904), # Garment District
+    140: (40.7736, -73.9566), # Lenox Hill East
+    141: (40.7781, -73.9515), # Lenox Hill West
+    236: (40.7801, -73.9538), # Upper East Side North
+    237: (40.7736, -73.9641), # Upper East Side South
+    238: (40.8033, -73.9674), # Upper West Side North
+    239: (40.7879, -73.9799), # Upper West Side South
+    142: (40.7750, -73.9818), # Lincoln Square
+    48: (40.7618, -73.9984),  # Clinton East
+    246: (40.7513, -74.0044), # Chelsea West
+    68: (40.7431, -73.9973),  # Chelsea East
+    79: (40.7289, -73.9892),  # East Village
+    107: (40.7324, -73.9873), # Gramercy
+    170: (40.7454, -73.9782), # Murray Hill
+    90: (40.7405, -74.0071),  # Flatiron / Union Sq
+    234: (40.7402, -73.9896), # Union Sq
+    113: (40.7325, -73.9973), # Greenwich Village North
+    114: (40.7291, -74.0012), # Greenwich Village South
+    125: (40.7247, -74.0084), # Hudson Sq
+    249: (40.7346, -74.0062), # West Village
+    231: (40.7202, -74.0102), # TriBeCa
+    148: (40.7161, -73.9912), # Lower East Side
+    224: (40.7214, -73.9798), # Stuyvesant Town/Peter Cooper Village
+    262: (40.7757, -73.9431), # Yorkville East
+    261: (40.7075, -74.0113), # World Trade Center
+}
+
+def _build_location_coord_mapping():
+    zones_df = _get_zone_df()
+    mapping = {}
+    for _, row in zones_df.iterrows():
+        try:
+            loc_id = int(row["LocationID"])
+            boro = str(row["Borough"])
+            if loc_id in COORD_LOOKUP:
+                mapping[loc_id] = COORD_LOOKUP[loc_id]
+            else:
+                mapping[loc_id] = BOROUGH_CENTROIDS.get(boro, BOROUGH_CENTROIDS["Unknown"])
+        except Exception:
+            pass
+    return mapping
+
+def haversine_vectorized(lon1, lat1, lon2, lat2):
+    lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
+    dlon = lon2 - lon1 
+    dlat = lat2 - lat1 
+    a = np.sin(dlat/2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon/2)**2
+    c = 2 * np.arcsin(np.sqrt(a)) 
+    r = 3956 # Radius of earth in miles
+    return c * r
+
+def _get_us_holidays(year):
+    import datetime
+    holidays_set = set()
+    holidays_set.add(datetime.date(year, 1, 1))   # New Year's
+    holidays_set.add(datetime.date(year, 6, 19))  # Juneteenth
+    holidays_set.add(datetime.date(year, 7, 4))   # Independence Day
+    holidays_set.add(datetime.date(year, 11, 11)) # Veterans Day
+    holidays_set.add(datetime.date(year, 12, 25)) # Christmas
+    
+    def get_nth_weekday(y, m, n, w):
+        first_day = datetime.date(y, m, 1)
+        first_occur = 1 + (w - first_day.weekday()) % 7
+        return datetime.date(y, m, first_occur + 7 * (n - 1))
+        
+    try:
+        holidays_set.add(get_nth_weekday(year, 1, 3, 0)) # MLK
+        holidays_set.add(get_nth_weekday(year, 2, 3, 0)) # Presidents'
+        
+        # Memorial Day (last Monday of May)
+        memorial = datetime.date(year, 5, 31)
+        memorial -= datetime.timedelta(days=memorial.weekday())
+        holidays_set.add(memorial)
+        
+        holidays_set.add(get_nth_weekday(year, 9, 1, 0))  # Labor Day
+        holidays_set.add(get_nth_weekday(year, 10, 2, 0)) # Columbus Day
+        holidays_set.add(get_nth_weekday(year, 11, 4, 3)) # Thanksgiving
+    except Exception:
+        pass
+    return holidays_set
+
+_HOLIDAYS_CACHE = {}
+
+def is_holiday_date(dt):
+    import datetime
+    if isinstance(dt, datetime.datetime):
+        d = dt.date()
+    else:
+        d = dt
+    y = d.year
+    if y not in _HOLIDAYS_CACHE:
+        _HOLIDAYS_CACHE[y] = _get_us_holidays(y)
+    return 1 if d in _HOLIDAYS_CACHE[y] else 0
+
+def _add_is_holiday(df):
+    unique_dates = pd.to_datetime(df["tpep_pickup_datetime"]).dt.date.unique()
+    holiday_map = {d: is_holiday_date(d) for d in unique_dates}
+    df["is_holiday"] = df["tpep_pickup_datetime"].dt.date.map(holiday_map).astype("int8")
+    return df
+
+def _add_haversine_distance(df):
+    coord_map = _build_location_coord_mapping()
+    if not coord_map:
+        df["haversine_distance"] = 0.0
+        return df
+    max_id = max(coord_map.keys())
+    lat_arr = np.zeros(max_id + 1)
+    lon_arr = np.zeros(max_id + 1)
+    default_lat, default_lon = BOROUGH_CENTROIDS["Unknown"]
+    
+    lat_arr[:] = default_lat
+    lon_arr[:] = default_lon
+    
+    for loc_id, (lat, lon) in coord_map.items():
+        lat_arr[loc_id] = lat
+        lon_arr[loc_id] = lon
+        
+    pu = df["PULocationID"].values
+    do = df["DOLocationID"].values
+    
+    pu = np.clip(pu, 0, max_id)
+    do = np.clip(do, 0, max_id)
+    
+    lat1 = lat_arr[pu]
+    lon1 = lon_arr[pu]
+    lat2 = lat_arr[do]
+    lon2 = lon_arr[do]
+    
+    df["haversine_distance"] = haversine_vectorized(lon1, lat1, lon2, lat2)
+    return df
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -370,6 +522,8 @@ FEATURE_CREATION_STEPS = [
     _add_pickup_hour,              # 1. extract hour (needed by later steps)
     _add_day_of_week,              # 2. extract day of week
     _add_is_weekend,               # 3. weekend flag   (needs day_of_week)
+    _add_is_holiday,               # 3.5. US federal holiday flag
+    _add_haversine_distance,       # 3.6. Haversine distance
     _add_time_of_day_bucket,       # 4. rush/off-peak/overnight + is_rush_hour (needs pickup_hour)
     _add_domain_features,          # 5. domain-based TLC surcharges (JFK, LGA, EWR, congestion)
     _add_geographic_features,      # 6. geographic features (boroughs and service zones OHE)

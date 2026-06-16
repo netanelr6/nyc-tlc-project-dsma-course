@@ -50,6 +50,9 @@ from pathlib import Path
 from dotenv import load_dotenv
 import time
 import requests
+import sys
+import datetime
+import re
 
 # Load W&B credentials and other environment variables from local .env
 load_dotenv()
@@ -117,7 +120,7 @@ SVM_LIMIT                     = None # 1_000_000
 
 # ── W&B configuration ─────────────────────────────────────────────────────────
 
-WANDB_PROJECT = "dsma-nyc-tlc-taxi-test7"
+WANDB_PROJECT = "dsma-nyc-tlc-taxi-fare-prediction - final"
 WANDB_ENTITY  = "dsma_fit_happens"
 TUNING_SAMPLE_SIZE = None #2_500_000
 WANDB_MAX_TABLE_ROWS = 50_000
@@ -127,6 +130,26 @@ EVIDENTLY_CONCEPT_REF_LIMIT = 50_000
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+ANSI_ESCAPE = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+
+class Tee:
+    def __init__(self, file_obj, original_stream):
+        self.stream = original_stream
+        self.file = file_obj
+        
+    def write(self, message):
+        self.stream.write(message)
+        clean_message = ANSI_ESCAPE.sub('', message)
+        self.file.write(clean_message)
+        self.file.flush()
+        
+    def flush(self):
+        self.stream.flush()
+        self.file.flush()
+        
+    def __getattr__(self, attr):
+        return getattr(self.stream, attr)
 
 
 def _print_header(title):
@@ -1168,15 +1191,40 @@ if __name__ == "__main__":
                         help="Subsample limit for SVM model training (or 'None')")
     args = parser.parse_args()
     
-    run_pipeline(
-        wandb_project               = args.wandb_project,
-        wandb_entity                = args.wandb_entity,
-        sample_size                 = args.sample_size,
-        tuning_sample_size          = args.tuning_sample_size,
-        wandb_max_table_rows        = args.wandb_max_table_rows,
-        act                         = args.act,
-        evidently_drift_ref_limit   = args.evidently_drift_ref_limit,
-        evidently_concept_ref_limit = args.evidently_concept_ref_limit,
-        nn_limit                    = args.nn_limit,
-        svm_limit                   = args.svm_limit,
-    )
+    logs_dir = Path("outputs/logs")
+    logs_dir.mkdir(parents=True, exist_ok=True)
+    
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    act_suffix = f"_act{args.act}" if args.act is not None else "_all"
+    log_file = logs_dir / f"run{act_suffix}_{timestamp}.log"
+    
+    print(f"Logging output to {log_file}")
+    
+    f = open(log_file, "w", encoding="utf-8")
+    original_stdout = sys.stdout
+    original_stderr = sys.stderr
+    
+    sys.stdout = Tee(f, original_stdout)
+    sys.stderr = Tee(f, original_stderr)
+    
+    try:
+        run_pipeline(
+            wandb_project               = args.wandb_project,
+            wandb_entity                = args.wandb_entity,
+            sample_size                 = args.sample_size,
+            tuning_sample_size          = args.tuning_sample_size,
+            wandb_max_table_rows        = args.wandb_max_table_rows,
+            act                         = args.act,
+            evidently_drift_ref_limit   = args.evidently_drift_ref_limit,
+            evidently_concept_ref_limit = args.evidently_concept_ref_limit,
+            nn_limit                    = args.nn_limit,
+            svm_limit                   = args.svm_limit,
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+    finally:
+        sys.stdout = original_stdout
+        sys.stderr = original_stderr
+        f.close()

@@ -1,0 +1,794 @@
+
+============================================================
+ACT 1 — Data Exploration & Prep
+============================================================
+
+******************************
+1.1 Data Download
+******************************
+Running download pipeline check...
+============================================================
+INITIALIZING NYC TLC DATA SYNC PIPELINE
+============================================================
+  [EXISTS] yellow_tripdata_2024-01.parquet is already locally available.
+           URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet
+  [EXISTS] yellow_tripdata_2024-02.parquet is already locally available.
+           URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-02.parquet
+  [EXISTS] yellow_tripdata_2025-01.parquet is already locally available.
+           URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet
+  [EXISTS] yellow_tripdata_2025-02.parquet is already locally available.
+           URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-02.parquet
+  [EXISTS] yellow_tripdata_2026-01.parquet is already locally available.
+           URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2026-01.parquet
+  [EXISTS] yellow_tripdata_2026-02.parquet is already locally available.
+           URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2026-02.parquet
+============================================================
+PIPELINE EXECUTION COMPLETE
+Execution Summary: Successfully verified 6/6 partitions.
+Target Directories:
+  - TRAIN: 'data/raw\train/'
+  - TEST: 'data/raw\test/'
+============================================================
+  [Duration] Data download finished in 0.01s
+
+******************************
+1.2 Data Fundamentals
+******************************
+
+Loading raw training dataset...
+  Train Data: Loaded 13,024,919 rows x 19 columns
+
+  Train Data Columns and Dtypes:
+    - VendorID                  : int8
+    - tpep_pickup_datetime      : datetime64[us]
+    - tpep_dropoff_datetime     : datetime64[us]
+    - passenger_count           : float32
+    - trip_distance             : float32
+    - RatecodeID                : float32
+    - store_and_fwd_flag        : str
+    - PULocationID              : int16
+    - DOLocationID              : int16
+    - payment_type              : int8
+    - fare_amount               : float32
+    - extra                     : float32
+    - mta_tax                   : float32
+    - tip_amount                : float32
+    - tolls_amount              : float32
+    - improvement_surcharge     : float32
+    - total_amount              : float32
+    - congestion_surcharge      : float32
+    - Airport_fee               : float32
+
+  Train Data Summary Statistics (Transposed):
+                            count                        mean                  min                         25%                  50%                         75%                  max         std
+VendorID               13024919.0                    1.774118                  1.0                         2.0                  2.0                         2.0                  7.0    0.435286
+tpep_pickup_datetime     13024919  2024-08-17 04:44:59.619510  2002-12-31 22:59:39         2024-02-03 18:49:58  2025-01-07 09:25:01  2025-02-03 15:07:37.500000  2025-03-01 00:06:32         NaN
+tpep_dropoff_datetime    13024919  2024-08-17 05:00:28.613069  2002-12-31 23:05:41  2024-02-03 19:05:52.500000  2025-01-07 09:40:42  2025-02-03 15:24:26.500000  2025-03-01 23:13:42         NaN
+passenger_count        11352061.0                    1.309817                  0.0                         1.0                  1.0                         1.0                  9.0     0.79107
+trip_distance          13024919.0                    4.939977                  0.0                         1.0                 1.69                        3.12          312722.3125  438.982361
+RatecodeID             11352061.0                    2.282641                  1.0                         1.0                  1.0                         1.0                 99.0   10.810536
+PULocationID           13024919.0                  164.946229                  1.0                       132.0                162.0                       234.0                265.0   64.507587
+DOLocationID           13024919.0                   163.98587                  1.0                       113.0                162.0                       234.0                265.0   69.491194
+payment_type           13024919.0                    1.062159                  0.0                         1.0                  1.0                         1.0                  5.0    0.663673
+fare_amount            13024919.0                    17.46217         -1807.599976                         8.6                 12.8                   19.799999           863372.125  242.703018
+extra                  13024919.0                    1.355744                 -7.5                         0.0                  1.0                         2.5            22.549999    1.830775
+mta_tax                13024919.0                    0.481193                 -0.5                         0.5                  0.5                         0.5                 10.5    0.126653
+tip_amount             13024919.0                     3.06151               -220.0                         0.0                 2.52                         4.0           543.330017    3.792034
+tolls_amount           13024919.0                    0.468368          -126.940002                         0.0                  0.0                         0.0           170.940002    2.020853
+improvement_surcharge  13024919.0                    0.965487                 -1.0                         1.0                  1.0                         1.0                  1.0    0.248744
+total_amount           13024919.0                   25.956621         -1832.849976                       15.35                20.15                   28.200001           863380.375  243.058395
+congestion_surcharge   11352061.0                    2.244747                 -2.5                         2.5                  2.5                         2.5                  2.5    0.860374
+Airport_fee            11352061.0                    0.128941                -1.75                         0.0                  0.0                         0.0                 6.75     0.47463
+  [Duration] Data fundamentals finished in 17.74s
+
+******************************
+1.3 Data Validation
+******************************
+  Result: SOME CHECKS FAILED (10/12 checks passed)
+
+  #    Column                                       Check                                            Result
+  ---------------------------------------------------------------------------------------------------------
+  1    tpep_pickup_datetime                         not_null                                         OK  
+  2    tpep_dropoff_datetime                        not_null                                         OK  
+  3    tpep_pickup_datetime, tpep_dropoff_datetime  tpep_dropoff_datetime_geq_tpep_pickup_datetime   FAIL
+     >> 0.00% of rows violate ordering constraint (tpep_dropoff_datetime < tpep_pickup_datetime)
+  4    PULocationID                                 not_null                                         OK  
+  5    PULocationID                                 between[1,265]                                   OK  
+  6    DOLocationID                                 not_null                                         OK  
+  7    DOLocationID                                 between[1,265]                                   OK  
+  8    trip_distance                                between[0.0,None]                                OK  
+  9    payment_type, tip_amount                     cash_tip_anomaly_check                           OK  
+  10   total_amount                                 not_null                                         OK  
+  11   total_amount                                 between[0.0,None]                                FAIL
+     >> Failed threshold: 98.54% within range < 100.00%
+  12   fare_amount                                  between[3.0,None]                                OK  
+  [Duration] Data validation finished in 0.65s
+
+******************************
+1.4 Data Cleaning
+******************************
+
+Cleaning training datasets...
+
+============================================================
+STARTING CLEANING PIPELINE
+============================================================
+Loading data from DF...
+Processing DataFrame...
+  Input  rows : 13,024,919
+  drop_critical_nulls  : no rows dropped
+  drop_pre_december_2023  : dropped 7 rows
+  fill_non_critical_nulls : filled - RatecodeID (1,672,858 -> 1), store_and_fwd_flag (1,672,858 -> 'N'), Airport_fee (1,672,858 -> 0.0)
+  select_relevant_columns : dropped 9 columns - ['VendorID', 'passenger_count', 'store_and_fwd_flag', 'extra', 'mta_tax', 'tolls_amount', 'improvement_surcharge', 'congestion_surcharge', 'Airport_fee']
+  drop_remaining_nulls : no remaining nulls
+  filter_temporal_logic   : dropped 280 invalid rows
+  filter_monetary_logic   : dropped 418,923 invalid/outlier rows
+  Output rows : 12,605,709
+  Saved cleaned file -> data/processed/DF_test_2024_2025_cleaned.parquet
+
+Purging raw train dataframe and clean train dataframe from memory...
+
+Loading raw test dataset...
+
+Cleaning test datasets...
+
+============================================================
+STARTING CLEANING PIPELINE
+============================================================
+Loading data from DF...
+Processing DataFrame...
+  Input  rows : 7,124,755
+  fill_non_critical_nulls : filled - RatecodeID (2,111,375 -> 1), store_and_fwd_flag (2,111,375 -> 'N'), Airport_fee (2,111,375 -> 0.0)
+  select_relevant_columns : dropped 10 columns - ['VendorID', 'passenger_count', 'store_and_fwd_flag', 'extra', 'mta_tax', 'tolls_amount', 'improvement_surcharge', 'congestion_surcharge', 'Airport_fee', 'cbd_congestion_fee']
+  Output rows : 7,124,755
+  Saved cleaned file -> data/processed/Df_test_2026_cleaned.parquet
+
+Purging raw test dataframe and clean test dataframe from memory...
+  Training set: 12,605,709 rows
+  Test set:     7,124,755 rows
+  [Duration] Data cleaning finished in 22.28s
+
+******************************
+1.5 Prepare Features
+******************************
+
+Loading train clean dataset for features...
+
+Running baseline feature engineering on train clean dataset...
+  Baseline train features saved -> data/processed/baseline_train.parquet
+
+Running engineered feature engineering on train clean dataset...
+  Engineered train features saved -> data/processed/engineered_train.parquet
+  Baseline scaler saved -> data/feature_stores/baseline_scaler.pkl
+  Engineered scaler saved -> data/feature_stores/engineered_scaler.pkl
+
+Loading test clean dataset for features...
+
+Running baseline feature engineering on test clean dataset...
+  Baseline test features saved -> data/processed/baseline_test.parquet
+
+Running engineered feature engineering on test clean dataset...
+  Engineered test features saved -> data/processed/engineered_test.parquet
+  [Duration] Features preparation finished in 91.13s
+
+>>> [Duration] ACT 1 completed in 131.80s
+
+============================================================
+ACT 2 — Model Building & Tuning
+============================================================
+Loading feature sets from disk...
+  [Duration] Loaded feature sets in 2.10s
+
+******************************
+2.1 Model Training & Evaluation
+******************************
+  Training linear_regression ... [Elapsed: 0.0s]  Training linear_regression ... [Elapsed: 0.5s]  Training linear_regression ... [Elapsed: 1.0s]  Training linear_regression ... [Elapsed: 1.5s]  Training linear_regression ... [Elapsed: 2.0s]  Training linear_regression ... [Elapsed: 2.5s]  Training linear_regression ... [Elapsed: 3.0s]  Training linear_regression ... [Elapsed: 3.5s]  Training linear_regression ... [Elapsed: 4.0s]  Training linear_regression ... [Elapsed: 4.5s]  Training linear_regression ... [Elapsed: 5.0s]  Training linear_regression ... [Elapsed: 5.5s]  Training linear_regression ... [Elapsed: 6.0s]  Training linear_regression ... [Elapsed: 6.5s]  Training linear_regression ... [Elapsed: 7.0s]  Training linear_regression ... [Elapsed: 7.5s]  Training linear_regression ... [Elapsed: 8.0s]  Training linear_regression ... [Elapsed: 8.5s]  Training linear_regression ... [Elapsed: 9.0s]  Training linear_regression ... [Elapsed: 9.5s]  Training linear_regression ... [Elapsed: 10.2s]  Training linear_regression ... [Elapsed: 10.7s]  Training linear_regression ... [Elapsed: 11.2s]  Training linear_regression ... [Elapsed: 11.7s]  Training linear_regression ... [Elapsed: 21.2s]  [Duration] Finished training linear_regression in 21.57s
+  Training decision_tree ... [Elapsed: 0.0s]  Training decision_tree ... [Elapsed: 0.5s]  Training decision_tree ... [Elapsed: 1.0s]  Training decision_tree ... [Elapsed: 1.5s]  Training decision_tree ... [Elapsed: 2.0s]  Training decision_tree ... [Elapsed: 2.5s]  Training decision_tree ... [Elapsed: 3.0s]  Training decision_tree ... [Elapsed: 3.5s]  Training decision_tree ... [Elapsed: 4.0s]  Training decision_tree ... [Elapsed: 4.5s]  Training decision_tree ... [Elapsed: 5.0s]  Training decision_tree ... [Elapsed: 5.5s]  Training decision_tree ... [Elapsed: 6.0s]  Training decision_tree ... [Elapsed: 6.5s]  Training decision_tree ... [Elapsed: 7.0s]  Training decision_tree ... [Elapsed: 7.5s]  Training decision_tree ... [Elapsed: 8.0s]  Training decision_tree ... [Elapsed: 8.5s]  Training decision_tree ... [Elapsed: 9.0s]  Training decision_tree ... [Elapsed: 9.5s]  Training decision_tree ... [Elapsed: 10.0s]  Training decision_tree ... [Elapsed: 10.5s]  Training decision_tree ... [Elapsed: 11.1s]  Training decision_tree ... [Elapsed: 11.6s]  Training decision_tree ... [Elapsed: 12.1s]  Training decision_tree ... [Elapsed: 12.6s]  Training decision_tree ... [Elapsed: 13.1s]  Training decision_tree ... [Elapsed: 13.6s]  Training decision_tree ... [Elapsed: 14.1s]  Training decision_tree ... [Elapsed: 14.6s]  Training decision_tree ... [Elapsed: 15.1s]  Training decision_tree ... [Elapsed: 15.6s]  Training decision_tree ... [Elapsed: 16.1s]  Training decision_tree ... [Elapsed: 16.6s]  Training decision_tree ... [Elapsed: 17.1s]  Training decision_tree ... [Elapsed: 17.6s]  Training decision_tree ... [Elapsed: 18.1s]  Training decision_tree ... [Elapsed: 18.6s]  Training decision_tree ... [Elapsed: 19.1s]  Training decision_tree ... [Elapsed: 19.6s]  Training decision_tree ... [Elapsed: 20.1s]  Training decision_tree ... [Elapsed: 20.6s]  Training decision_tree ... [Elapsed: 21.1s]  Training decision_tree ... [Elapsed: 21.6s]  Training decision_tree ... [Elapsed: 22.1s]  Training decision_tree ... [Elapsed: 22.6s]  Training decision_tree ... [Elapsed: 23.1s]  Training decision_tree ... [Elapsed: 23.6s]  Training decision_tree ... [Elapsed: 24.1s]  Training decision_tree ... [Elapsed: 24.6s]  Training decision_tree ... [Elapsed: 25.1s]  Training decision_tree ... [Elapsed: 25.6s]  Training decision_tree ... [Elapsed: 26.1s]  Training decision_tree ... [Elapsed: 26.6s]  Training decision_tree ... [Elapsed: 27.1s]  Training decision_tree ... [Elapsed: 27.6s]  Training decision_tree ... [Elapsed: 28.1s]  Training decision_tree ... [Elapsed: 28.6s]  Training decision_tree ... [Elapsed: 29.1s]  Training decision_tree ... [Elapsed: 29.6s]  Training decision_tree ... [Elapsed: 30.1s]  Training decision_tree ... [Elapsed: 30.6s]  Training decision_tree ... [Elapsed: 31.1s]  Training decision_tree ... [Elapsed: 31.6s]  Training decision_tree ... [Elapsed: 32.1s]  Training decision_tree ... [Elapsed: 32.6s]  Training decision_tree ... [Elapsed: 33.1s]  Training decision_tree ... [Elapsed: 33.6s]  Training decision_tree ... [Elapsed: 34.2s]  [Duration] Finished training decision_tree in 34.22s
+  Training random_forest ... [Elapsed: 0.0s]  Training random_forest ... [Elapsed: 0.5s]  Training random_forest ... [Elapsed: 1.0s]  Training random_forest ... [Elapsed: 1.5s]  Training random_forest ... [Elapsed: 2.0s]  Training random_forest ... [Elapsed: 2.5s]  Training random_forest ... [Elapsed: 3.3s]  Training random_forest ... [Elapsed: 4.0s]  Training random_forest ... [Elapsed: 4.5s]  Training random_forest ... [Elapsed: 5.0s]  Training random_forest ... [Elapsed: 5.5s]  Training random_forest ... [Elapsed: 6.1s]  Training random_forest ... [Elapsed: 6.6s]  Training random_forest ... [Elapsed: 7.3s]  Training random_forest ... [Elapsed: 8.1s]  Training random_forest ... [Elapsed: 8.6s]  Training random_forest ... [Elapsed: 9.1s]  Training random_forest ... [Elapsed: 9.6s]  Training random_forest ... [Elapsed: 10.1s]  Training random_forest ... [Elapsed: 10.6s]  Training random_forest ... [Elapsed: 11.2s]  [Duration] Finished training random_forest in 11.66s
+  Training gradient_boosting ... [Elapsed: 0.0s]  Training gradient_boosting ... [Elapsed: 0.5s]  Training gradient_boosting ... [Elapsed: 1.0s]  Training gradient_boosting ... [Elapsed: 1.5s]  Training gradient_boosting ... [Elapsed: 2.0s]  Training gradient_boosting ... [Elapsed: 2.5s]  Training gradient_boosting ... [Elapsed: 3.0s]  Training gradient_boosting ... [Elapsed: 3.5s]  Training gradient_boosting ... [Elapsed: 4.1s]  Training gradient_boosting ... [Elapsed: 4.6s]  Training gradient_boosting ... [Elapsed: 5.1s]  Training gradient_boosting ... [Elapsed: 5.6s]  Training gradient_boosting ... [Elapsed: 6.1s]  Training gradient_boosting ... [Elapsed: 7.4s]  Training gradient_boosting ... [Elapsed: 7.9s]  Training gradient_boosting ... [Elapsed: 8.4s]  Training gradient_boosting ... [Elapsed: 8.9s]  Training gradient_boosting ... [Elapsed: 9.4s]  Training gradient_boosting ... [Elapsed: 9.9s]  Training gradient_boosting ... [Elapsed: 10.4s]  Training gradient_boosting ... [Elapsed: 10.9s]  Training gradient_boosting ... [Elapsed: 11.4s]  Training gradient_boosting ... [Elapsed: 11.9s]  Training gradient_boosting ... [Elapsed: 12.4s]  Training gradient_boosting ... [Elapsed: 12.9s]  Training gradient_boosting ... [Elapsed: 13.4s]  Training gradient_boosting ... [Elapsed: 13.9s]  Training gradient_boosting ... [Elapsed: 14.4s]  Training gradient_boosting ... [Elapsed: 14.9s]  Training gradient_boosting ... [Elapsed: 15.4s]  Training gradient_boosting ... [Elapsed: 15.9s]  Training gradient_boosting ... [Elapsed: 16.4s]  Training gradient_boosting ... [Elapsed: 16.9s]  Training gradient_boosting ... [Elapsed: 17.4s]  Training gradient_boosting ... [Elapsed: 17.9s]  Training gradient_boosting ... [Elapsed: 18.4s]  Training gradient_boosting ... [Elapsed: 18.9s]  Training gradient_boosting ... [Elapsed: 19.4s]  Training gradient_boosting ... [Elapsed: 19.9s]  Training gradient_boosting ... [Elapsed: 20.4s]  Training gradient_boosting ... [Elapsed: 20.9s]  Training gradient_boosting ... [Elapsed: 21.4s]  Training gradient_boosting ... [Elapsed: 21.9s]  Training gradient_boosting ... [Elapsed: 22.4s]  Training gradient_boosting ... [Elapsed: 22.9s]  Training gradient_boosting ... [Elapsed: 23.4s]  Training gradient_boosting ... [Elapsed: 24.0s]  Training gradient_boosting ... [Elapsed: 24.5s]  Training gradient_boosting ... [Elapsed: 25.0s]  Training gradient_boosting ... [Elapsed: 25.5s]  Training gradient_boosting ... [Elapsed: 26.0s]  Training gradient_boosting ... [Elapsed: 26.5s]  Training gradient_boosting ... [Elapsed: 27.0s]  Training gradient_boosting ... [Elapsed: 27.5s]  Training gradient_boosting ... [Elapsed: 28.0s]  Training gradient_boosting ... [Elapsed: 28.5s]  Training gradient_boosting ... [Elapsed: 29.0s]  Training gradient_boosting ... [Elapsed: 29.5s]  Training gradient_boosting ... [Elapsed: 30.0s]  Training gradient_boosting ... [Elapsed: 30.5s]  Training gradient_boosting ... [Elapsed: 31.0s]  Training gradient_boosting ... [Elapsed: 31.5s]  Training gradient_boosting ... [Elapsed: 32.0s]  Training gradient_boosting ... [Elapsed: 32.5s]  Training gradient_boosting ... [Elapsed: 33.0s]  Training gradient_boosting ... [Elapsed: 33.5s]  Training gradient_boosting ... [Elapsed: 34.0s]  Training gradient_boosting ... [Elapsed: 34.5s]  Training gradient_boosting ... [Elapsed: 35.0s]  Training gradient_boosting ... [Elapsed: 35.5s]  Training gradient_boosting ... [Elapsed: 36.0s]  Training gradient_boosting ... [Elapsed: 36.5s]  Training gradient_boosting ... [Elapsed: 37.0s]  Training gradient_boosting ... [Elapsed: 37.5s]  Training gradient_boosting ... [Elapsed: 38.0s]  Training gradient_boosting ... [Elapsed: 38.5s]  Training gradient_boosting ... [Elapsed: 39.0s]  Training gradient_boosting ... [Elapsed: 39.5s]  Training gradient_boosting ... [Elapsed: 40.0s]  Training gradient_boosting ... [Elapsed: 40.5s]  Training gradient_boosting ... [Elapsed: 41.0s]  Training gradient_boosting ... [Elapsed: 41.5s]  Training gradient_boosting ... [Elapsed: 42.0s]  Training gradient_boosting ... [Elapsed: 42.5s]  Training gradient_boosting ... [Elapsed: 43.0s]  Training gradient_boosting ... [Elapsed: 43.5s]  Training gradient_boosting ... [Elapsed: 44.0s]  Training gradient_boosting ... [Elapsed: 44.5s]  Training gradient_boosting ... [Elapsed: 45.0s]  Training gradient_boosting ... [Elapsed: 45.5s]  Training gradient_boosting ... [Elapsed: 46.0s]  Training gradient_boosting ... [Elapsed: 46.5s]  Training gradient_boosting ... [Elapsed: 47.0s]  Training gradient_boosting ... [Elapsed: 47.5s]  Training gradient_boosting ... [Elapsed: 48.0s]  Training gradient_boosting ... [Elapsed: 48.5s]  Training gradient_boosting ... [Elapsed: 49.0s]  Training gradient_boosting ... [Elapsed: 49.5s]  Training gradient_boosting ... [Elapsed: 50.0s]  Training gradient_boosting ... [Elapsed: 50.5s]  Training gradient_boosting ... [Elapsed: 51.0s]  Training gradient_boosting ... [Elapsed: 51.5s]  Training gradient_boosting ... [Elapsed: 52.0s]  Training gradient_boosting ... [Elapsed: 52.5s]  Training gradient_boosting ... [Elapsed: 53.0s]  Training gradient_boosting ... [Elapsed: 53.5s]  Training gradient_boosting ... [Elapsed: 54.0s]  Training gradient_boosting ... [Elapsed: 54.5s]  Training gradient_boosting ... [Elapsed: 55.0s]  Training gradient_boosting ... [Elapsed: 55.5s]  Training gradient_boosting ... [Elapsed: 56.0s]  Training gradient_boosting ... [Elapsed: 56.5s]  Training gradient_boosting ... [Elapsed: 57.0s]  Training gradient_boosting ... [Elapsed: 57.5s]  Training gradient_boosting ... [Elapsed: 58.0s]  Training gradient_boosting ... [Elapsed: 58.5s]  Training gradient_boosting ... [Elapsed: 59.0s]  Training gradient_boosting ... [Elapsed: 59.5s]  Training gradient_boosting ... [Elapsed: 61.1s]  Training gradient_boosting ... [Elapsed: 61.6s]  Training gradient_boosting ... [Elapsed: 62.1s]  Training gradient_boosting ... [Elapsed: 62.6s]  Training gradient_boosting ... [Elapsed: 63.1s]  Training gradient_boosting ... [Elapsed: 63.6s]  Training gradient_boosting ... [Elapsed: 64.1s]  Training gradient_boosting ... [Elapsed: 64.6s]  Training gradient_boosting ... [Elapsed: 65.1s]  Training gradient_boosting ... [Elapsed: 65.6s]  Training gradient_boosting ... [Elapsed: 66.1s]  Training gradient_boosting ... [Elapsed: 66.6s]  Training gradient_boosting ... [Elapsed: 67.1s]  Training gradient_boosting ... [Elapsed: 67.6s]  Training gradient_boosting ... [Elapsed: 68.1s]  Training gradient_boosting ... [Elapsed: 68.6s]  Training gradient_boosting ... [Elapsed: 69.1s]  Training gradient_boosting ... [Elapsed: 69.6s]  Training gradient_boosting ... [Elapsed: 70.1s]  Training gradient_boosting ... [Elapsed: 70.6s]  Training gradient_boosting ... [Elapsed: 71.1s]  Training gradient_boosting ... [Elapsed: 71.6s]  Training gradient_boosting ... [Elapsed: 72.1s]  Training gradient_boosting ... [Elapsed: 72.7s]  Training gradient_boosting ... [Elapsed: 73.2s]  Training gradient_boosting ... [Elapsed: 73.7s]  Training gradient_boosting ... [Elapsed: 74.2s]  Training gradient_boosting ... [Elapsed: 74.7s]  Training gradient_boosting ... [Elapsed: 75.2s]  Training gradient_boosting ... [Elapsed: 75.7s]  Training gradient_boosting ... [Elapsed: 76.2s]  Training gradient_boosting ... [Elapsed: 76.7s]  Training gradient_boosting ... [Elapsed: 77.2s]  Training gradient_boosting ... [Elapsed: 77.7s]  Training gradient_boosting ... [Elapsed: 78.2s]  Training gradient_boosting ... [Elapsed: 78.7s]  Training gradient_boosting ... [Elapsed: 79.2s]  Training gradient_boosting ... [Elapsed: 79.7s]  Training gradient_boosting ... [Elapsed: 80.2s]  Training gradient_boosting ... [Elapsed: 80.7s]  Training gradient_boosting ... [Elapsed: 81.2s]  Training gradient_boosting ... [Elapsed: 81.7s]  Training gradient_boosting ... [Elapsed: 82.2s]  Training gradient_boosting ... [Elapsed: 82.7s]  Training gradient_boosting ... [Elapsed: 83.2s]  Training gradient_boosting ... [Elapsed: 83.7s]  Training gradient_boosting ... [Elapsed: 84.2s]  Training gradient_boosting ... [Elapsed: 84.7s]  Training gradient_boosting ... [Elapsed: 85.2s]  Training gradient_boosting ... [Elapsed: 85.7s]  Training gradient_boosting ... [Elapsed: 86.2s]  Training gradient_boosting ... [Elapsed: 86.7s]  Training gradient_boosting ... [Elapsed: 87.2s]  Training gradient_boosting ... [Elapsed: 87.7s]  Training gradient_boosting ... [Elapsed: 88.2s]  Training gradient_boosting ... [Elapsed: 88.7s]  Training gradient_boosting ... [Elapsed: 89.2s]  Training gradient_boosting ... [Elapsed: 89.7s]  Training gradient_boosting ... [Elapsed: 90.2s]  Training gradient_boosting ... [Elapsed: 90.7s]  Training gradient_boosting ... [Elapsed: 91.2s]  Training gradient_boosting ... [Elapsed: 91.7s]  Training gradient_boosting ... [Elapsed: 92.2s]  Training gradient_boosting ... [Elapsed: 92.7s]  Training gradient_boosting ... [Elapsed: 93.2s]  Training gradient_boosting ... [Elapsed: 93.7s]  Training gradient_boosting ... [Elapsed: 94.2s]  Training gradient_boosting ... [Elapsed: 94.7s]  Training gradient_boosting ... [Elapsed: 95.2s]  Training gradient_boosting ... [Elapsed: 95.7s]  Training gradient_boosting ... [Elapsed: 96.2s]  Training gradient_boosting ... [Elapsed: 96.7s]  Training gradient_boosting ... [Elapsed: 97.2s]  Training gradient_boosting ... [Elapsed: 97.7s]  Training gradient_boosting ... [Elapsed: 98.2s]  Training gradient_boosting ... [Elapsed: 98.7s]  Training gradient_boosting ... [Elapsed: 99.2s]  Training gradient_boosting ... [Elapsed: 99.7s]  Training gradient_boosting ... [Elapsed: 100.2s]  Training gradient_boosting ... [Elapsed: 100.7s]  Training gradient_boosting ... [Elapsed: 101.3s]  Training gradient_boosting ... [Elapsed: 101.8s]  Training gradient_boosting ... [Elapsed: 102.3s]  Training gradient_boosting ... [Elapsed: 102.8s]  Training gradient_boosting ... [Elapsed: 103.3s]  Training gradient_boosting ... [Elapsed: 103.8s]  Training gradient_boosting ... [Elapsed: 104.3s]  Training gradient_boosting ... [Elapsed: 104.8s]  Training gradient_boosting ... [Elapsed: 105.3s]  Training gradient_boosting ... [Elapsed: 105.8s]  Training gradient_boosting ... [Elapsed: 106.3s]  Training gradient_boosting ... [Elapsed: 106.8s]  Training gradient_boosting ... [Elapsed: 107.3s]  Training gradient_boosting ... [Elapsed: 107.8s]  Training gradient_boosting ... [Elapsed: 108.3s]  Training gradient_boosting ... [Elapsed: 108.8s]  Training gradient_boosting ... [Elapsed: 109.3s]  Training gradient_boosting ... [Elapsed: 109.8s]  Training gradient_boosting ... [Elapsed: 110.3s]  Training gradient_boosting ... [Elapsed: 110.8s]  Training gradient_boosting ... [Elapsed: 111.3s]  Training gradient_boosting ... [Elapsed: 111.8s]  Training gradient_boosting ... [Elapsed: 112.3s]  Training gradient_boosting ... [Elapsed: 112.8s]  Training gradient_boosting ... [Elapsed: 113.3s]  Training gradient_boosting ... [Elapsed: 113.8s]  Training gradient_boosting ... [Elapsed: 114.3s]  Training gradient_boosting ... [Elapsed: 114.8s]  Training gradient_boosting ... [Elapsed: 115.3s]  Training gradient_boosting ... [Elapsed: 115.8s]  Training gradient_boosting ... [Elapsed: 116.3s]  Training gradient_boosting ... [Elapsed: 116.8s]  Training gradient_boosting ... [Elapsed: 117.3s]  Training gradient_boosting ... [Elapsed: 117.8s]  Training gradient_boosting ... [Elapsed: 118.3s]  Training gradient_boosting ... [Elapsed: 118.8s]  Training gradient_boosting ... [Elapsed: 119.3s]  Training gradient_boosting ... [Elapsed: 119.8s]  Training gradient_boosting ... [Elapsed: 120.4s]  Training gradient_boosting ... [Elapsed: 120.9s]  Training gradient_boosting ... [Elapsed: 121.4s]  Training gradient_boosting ... [Elapsed: 121.9s]  Training gradient_boosting ... [Elapsed: 122.4s]  Training gradient_boosting ... [Elapsed: 122.9s]  Training gradient_boosting ... [Elapsed: 123.4s]  Training gradient_boosting ... [Elapsed: 123.9s]  Training gradient_boosting ... [Elapsed: 124.4s]  Training gradient_boosting ... [Elapsed: 124.9s]  Training gradient_boosting ... [Elapsed: 125.4s]  Training gradient_boosting ... [Elapsed: 125.9s]  Training gradient_boosting ... [Elapsed: 126.4s]  Training gradient_boosting ... [Elapsed: 126.9s]  Training gradient_boosting ... [Elapsed: 127.4s]  Training gradient_boosting ... [Elapsed: 127.9s]  Training gradient_boosting ... [Elapsed: 128.4s]  Training gradient_boosting ... [Elapsed: 128.9s]  Training gradient_boosting ... [Elapsed: 129.4s]  Training gradient_boosting ... [Elapsed: 129.9s]  Training gradient_boosting ... [Elapsed: 130.4s]  Training gradient_boosting ... [Elapsed: 130.9s]  Training gradient_boosting ... [Elapsed: 131.4s]  Training gradient_boosting ... [Elapsed: 131.9s]  Training gradient_boosting ... [Elapsed: 132.4s]  Training gradient_boosting ... [Elapsed: 132.9s]  Training gradient_boosting ... [Elapsed: 133.4s]  Training gradient_boosting ... [Elapsed: 133.9s]  Training gradient_boosting ... [Elapsed: 134.4s]  Training gradient_boosting ... [Elapsed: 134.9s]  Training gradient_boosting ... [Elapsed: 135.4s]  Training gradient_boosting ... [Elapsed: 135.9s]  Training gradient_boosting ... [Elapsed: 136.4s]  Training gradient_boosting ... [Elapsed: 136.9s]  Training gradient_boosting ... [Elapsed: 137.4s]  Training gradient_boosting ... [Elapsed: 137.9s]  Training gradient_boosting ... [Elapsed: 138.4s]  Training gradient_boosting ... [Elapsed: 139.0s]  Training gradient_boosting ... [Elapsed: 139.5s]  Training gradient_boosting ... [Elapsed: 140.0s]  Training gradient_boosting ... [Elapsed: 140.5s]  Training gradient_boosting ... [Elapsed: 141.0s]  Training gradient_boosting ... [Elapsed: 141.5s]  Training gradient_boosting ... [Elapsed: 142.0s]  Training gradient_boosting ... [Elapsed: 142.5s]  Training gradient_boosting ... [Elapsed: 143.0s]  Training gradient_boosting ... [Elapsed: 143.5s]  Training gradient_boosting ... [Elapsed: 144.0s]  Training gradient_boosting ... [Elapsed: 144.5s]  Training gradient_boosting ... [Elapsed: 145.0s]  Training gradient_boosting ... [Elapsed: 145.5s]  Training gradient_boosting ... [Elapsed: 146.0s]  Training gradient_boosting ... [Elapsed: 146.5s]  Training gradient_boosting ... [Elapsed: 147.0s]  Training gradient_boosting ... [Elapsed: 147.5s]  Training gradient_boosting ... [Elapsed: 148.0s]  Training gradient_boosting ... [Elapsed: 148.5s]  Training gradient_boosting ... [Elapsed: 149.0s]  Training gradient_boosting ... [Elapsed: 149.5s]  Training gradient_boosting ... [Elapsed: 150.0s]  Training gradient_boosting ... [Elapsed: 150.5s]  Training gradient_boosting ... [Elapsed: 151.0s]  Training gradient_boosting ... [Elapsed: 151.5s]  Training gradient_boosting ... [Elapsed: 152.0s]  Training gradient_boosting ... [Elapsed: 152.5s]  Training gradient_boosting ... [Elapsed: 153.1s]  Training gradient_boosting ... [Elapsed: 153.6s]  Training gradient_boosting ... [Elapsed: 154.1s]  Training gradient_boosting ... [Elapsed: 154.6s]  Training gradient_boosting ... [Elapsed: 155.1s]  Training gradient_boosting ... [Elapsed: 155.6s]  Training gradient_boosting ... [Elapsed: 156.1s]  Training gradient_boosting ... [Elapsed: 156.6s]  Training gradient_boosting ... [Elapsed: 157.1s]  Training gradient_boosting ... [Elapsed: 157.6s]  Training gradient_boosting ... [Elapsed: 158.1s]  Training gradient_boosting ... [Elapsed: 158.6s]  Training gradient_boosting ... [Elapsed: 159.1s]  Training gradient_boosting ... [Elapsed: 159.6s]  Training gradient_boosting ... [Elapsed: 160.1s]  Training gradient_boosting ... [Elapsed: 160.6s]  Training gradient_boosting ... [Elapsed: 161.1s]  Training gradient_boosting ... [Elapsed: 161.6s]  Training gradient_boosting ... [Elapsed: 162.1s]  Training gradient_boosting ... [Elapsed: 162.6s]  Training gradient_boosting ... [Elapsed: 163.1s]  Training gradient_boosting ... [Elapsed: 163.6s]  Training gradient_boosting ... [Elapsed: 164.1s]  Training gradient_boosting ... [Elapsed: 164.6s]  Training gradient_boosting ... [Elapsed: 165.1s]  Training gradient_boosting ... [Elapsed: 165.6s]  Training gradient_boosting ... [Elapsed: 166.1s]  Training gradient_boosting ... [Elapsed: 166.6s]  Training gradient_boosting ... [Elapsed: 167.1s]  Training gradient_boosting ... [Elapsed: 167.6s]  Training gradient_boosting ... [Elapsed: 168.1s]  Training gradient_boosting ... [Elapsed: 168.6s]  Training gradient_boosting ... [Elapsed: 169.1s]  Training gradient_boosting ... [Elapsed: 169.6s]  Training gradient_boosting ... [Elapsed: 170.1s]  Training gradient_boosting ... [Elapsed: 170.6s]  Training gradient_boosting ... [Elapsed: 171.1s]  Training gradient_boosting ... [Elapsed: 171.6s]  Training gradient_boosting ... [Elapsed: 172.1s]  Training gradient_boosting ... [Elapsed: 172.6s]  Training gradient_boosting ... [Elapsed: 173.1s]  Training gradient_boosting ... [Elapsed: 173.6s]  Training gradient_boosting ... [Elapsed: 174.1s]  Training gradient_boosting ... [Elapsed: 174.6s]  Training gradient_boosting ... [Elapsed: 175.1s]  Training gradient_boosting ... [Elapsed: 175.6s]  Training gradient_boosting ... [Elapsed: 176.1s]  Training gradient_boosting ... [Elapsed: 176.7s]  Training gradient_boosting ... [Elapsed: 177.2s]  Training gradient_boosting ... [Elapsed: 177.7s]  Training gradient_boosting ... [Elapsed: 178.2s]  Training gradient_boosting ... [Elapsed: 178.7s]  Training gradient_boosting ... [Elapsed: 179.2s]  Training gradient_boosting ... [Elapsed: 179.7s]  Training gradient_boosting ... [Elapsed: 180.2s]  Training gradient_boosting ... [Elapsed: 180.7s]  Training gradient_boosting ... [Elapsed: 181.2s]  Training gradient_boosting ... [Elapsed: 181.7s]  Training gradient_boosting ... [Elapsed: 182.2s]  Training gradient_boosting ... [Elapsed: 182.7s]  Training gradient_boosting ... [Elapsed: 183.2s]  Training gradient_boosting ... [Elapsed: 183.7s]  Training gradient_boosting ... [Elapsed: 184.2s]  Training gradient_boosting ... [Elapsed: 184.7s]  Training gradient_boosting ... [Elapsed: 185.2s]  Training gradient_boosting ... [Elapsed: 185.7s]  Training gradient_boosting ... [Elapsed: 186.2s]  Training gradient_boosting ... [Elapsed: 186.7s]  Training gradient_boosting ... [Elapsed: 187.2s]  Training gradient_boosting ... [Elapsed: 187.7s]  Training gradient_boosting ... [Elapsed: 188.2s]  Training gradient_boosting ... [Elapsed: 188.7s]  Training gradient_boosting ... [Elapsed: 189.2s]  Training gradient_boosting ... [Elapsed: 189.7s]  Training gradient_boosting ... [Elapsed: 190.2s]  Training gradient_boosting ... [Elapsed: 190.7s]  Training gradient_boosting ... [Elapsed: 191.2s]  Training gradient_boosting ... [Elapsed: 191.7s]  Training gradient_boosting ... [Elapsed: 192.2s]  Training gradient_boosting ... [Elapsed: 192.8s]  Training gradient_boosting ... [Elapsed: 193.3s]  Training gradient_boosting ... [Elapsed: 193.8s]  Training gradient_boosting ... [Elapsed: 194.3s]  Training gradient_boosting ... [Elapsed: 194.8s]  Training gradient_boosting ... [Elapsed: 195.3s]  Training gradient_boosting ... [Elapsed: 195.8s]  Training gradient_boosting ... [Elapsed: 196.3s]  Training gradient_boosting ... [Elapsed: 196.8s]  Training gradient_boosting ... [Elapsed: 197.3s]  Training gradient_boosting ... [Elapsed: 197.8s]  Training gradient_boosting ... [Elapsed: 198.3s]  Training gradient_boosting ... [Elapsed: 198.8s]  Training gradient_boosting ... [Elapsed: 199.3s]  Training gradient_boosting ... [Elapsed: 199.8s]  Training gradient_boosting ... [Elapsed: 200.3s]  Training gradient_boosting ... [Elapsed: 200.8s]  Training gradient_boosting ... [Elapsed: 201.3s]  Training gradient_boosting ... [Elapsed: 201.8s]  Training gradient_boosting ... [Elapsed: 202.3s]  Training gradient_boosting ... [Elapsed: 202.8s]  Training gradient_boosting ... [Elapsed: 203.3s]  Training gradient_boosting ... [Elapsed: 205.4s]  [Duration] Finished training gradient_boosting in 205.39s
+  [Info] Subsampling training data to 1,000,000 samples specifically for neural_network to prevent CPU slowdown.  Training neural_network ... [Elapsed: 0.0s]
+  Training neural_network ... [Elapsed: 1.9s]  Training neural_network ... [Elapsed: 2.4s]  Training neural_network ... [Elapsed: 2.9s]  Training neural_network ... [Elapsed: 3.4s]  Training neural_network ... [Elapsed: 3.9s]  Training neural_network ... [Elapsed: 4.4s]  Training neural_network ... [Elapsed: 4.9s]  Training neural_network ... [Elapsed: 5.4s]  Training neural_network ... [Elapsed: 5.9s]  Training neural_network ... [Elapsed: 6.4s]  Training neural_network ... [Elapsed: 6.9s]  Training neural_network ... [Elapsed: 7.4s]  Training neural_network ... [Elapsed: 7.9s]  Training neural_network ... [Elapsed: 8.4s]  Training neural_network ... [Elapsed: 8.9s]  Training neural_network ... [Elapsed: 9.4s]  Training neural_network ... [Elapsed: 9.9s]  Training neural_network ... [Elapsed: 10.4s]  Training neural_network ... [Elapsed: 10.9s]  Training neural_network ... [Elapsed: 11.4s]  Training neural_network ... [Elapsed: 11.9s]  Training neural_network ... [Elapsed: 12.4s]  Training neural_network ... [Elapsed: 12.9s]  Training neural_network ... [Elapsed: 13.4s]  Training neural_network ... [Elapsed: 13.9s]  Training neural_network ... [Elapsed: 14.4s]  Training neural_network ... [Elapsed: 15.0s]  Training neural_network ... [Elapsed: 15.5s]  Training neural_network ... [Elapsed: 16.0s]  Training neural_network ... [Elapsed: 16.5s]  Training neural_network ... [Elapsed: 17.0s]  Training neural_network ... [Elapsed: 17.5s]C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (5) reached and the optimization hasn't converged yet.
+  warnings.warn(
+  [Duration] Finished training neural_network in 17.97s
+  Training svm ... [Elapsed: 0.0s]  Training svm ... [Elapsed: 0.5s]  Training svm ... [Elapsed: 1.0s]  Training svm ... [Elapsed: 1.5s]  Training svm ... [Elapsed: 2.0s]  Training svm ... [Elapsed: 2.5s]  Training svm ... [Elapsed: 3.0s]  Training svm ... [Elapsed: 3.5s]  Training svm ... [Elapsed: 4.0s]  Training svm ... [Elapsed: 4.5s]  Training svm ... [Elapsed: 5.0s]  Training svm ... [Elapsed: 5.5s]  Training svm ... [Elapsed: 6.0s]  Training svm ... [Elapsed: 6.5s]  Training svm ... [Elapsed: 7.0s]  Training svm ... [Elapsed: 7.5s]  Training svm ... [Elapsed: 8.0s]  Training svm ... [Elapsed: 8.5s]  Training svm ... [Elapsed: 9.0s]  Training svm ... [Elapsed: 9.5s]  Training svm ... [Elapsed: 10.0s]  Training svm ... [Elapsed: 10.5s]  Training svm ... [Elapsed: 11.0s]  Training svm ... [Elapsed: 11.5s]  Training svm ... [Elapsed: 12.0s]  Training svm ... [Elapsed: 13.4s]  Training svm ... [Elapsed: 14.0s]  Training svm ... [Elapsed: 14.5s]  Training svm ... [Elapsed: 15.0s]  Training svm ... [Elapsed: 15.5s]  Training svm ... [Elapsed: 17.5s]  Training svm ... [Elapsed: 23.7s]  Training svm ... [Elapsed: 24.2s]  Training svm ... [Elapsed: 24.7s]  Training svm ... [Elapsed: 25.2s]  Training svm ... [Elapsed: 25.7s]  Training svm ... [Elapsed: 26.2s]  Training svm ... [Elapsed: 26.7s]  Training svm ... [Elapsed: 27.2s]  Training svm ... [Elapsed: 27.7s]  Training svm ... [Elapsed: 28.2s]  Training svm ... [Elapsed: 28.7s]  Training svm ... [Elapsed: 29.2s]  Training svm ... [Elapsed: 29.7s]  Training svm ... [Elapsed: 30.2s]  Training svm ... [Elapsed: 30.7s]  Training svm ... [Elapsed: 31.2s]  Training svm ... [Elapsed: 31.7s]  Training svm ... [Elapsed: 32.2s]  Training svm ... [Elapsed: 32.7s]  Training svm ... [Elapsed: 33.2s]  Training svm ... [Elapsed: 33.7s]  Training svm ... [Elapsed: 34.2s]  Training svm ... [Elapsed: 34.7s]  Training svm ... [Elapsed: 35.2s]  Training svm ... [Elapsed: 35.7s]  Training svm ... [Elapsed: 36.2s]  Training svm ... [Elapsed: 36.7s]  Training svm ... [Elapsed: 37.2s]  Training svm ... [Elapsed: 37.7s]  Training svm ... [Elapsed: 38.2s]  Training svm ... [Elapsed: 38.7s]  Training svm ... [Elapsed: 39.2s]  Training svm ... [Elapsed: 39.7s]  Training svm ... [Elapsed: 40.2s]  Training svm ... [Elapsed: 40.7s]  Training svm ... [Elapsed: 41.2s]  Training svm ... [Elapsed: 41.7s]  Training svm ... [Elapsed: 42.2s]  Training svm ... [Elapsed: 42.7s]  Training svm ... [Elapsed: 43.2s]  Training svm ... [Elapsed: 43.7s]  Training svm ... [Elapsed: 44.2s]  Training svm ... [Elapsed: 44.7s]  Training svm ... [Elapsed: 45.2s]  Training svm ... [Elapsed: 45.7s]  Training svm ... [Elapsed: 46.2s]  Training svm ... [Elapsed: 46.7s]  Training svm ... [Elapsed: 47.2s]  Training svm ... [Elapsed: 47.7s]  Training svm ... [Elapsed: 48.2s]  Training svm ... [Elapsed: 48.7s]  Training svm ... [Elapsed: 49.2s]  Training svm ... [Elapsed: 49.7s]  Training svm ... [Elapsed: 50.2s]  Training svm ... [Elapsed: 50.7s]  Training svm ... [Elapsed: 51.2s]  Training svm ... [Elapsed: 51.7s]  Training svm ... [Elapsed: 52.2s]  Training svm ... [Elapsed: 52.7s]  Training svm ... [Elapsed: 53.2s]  Training svm ... [Elapsed: 53.7s]  Training svm ... [Elapsed: 54.2s]  Training svm ... [Elapsed: 54.7s]  Training svm ... [Elapsed: 55.2s]  Training svm ... [Elapsed: 55.7s]  Training svm ... [Elapsed: 56.2s]  Training svm ... [Elapsed: 56.7s]  Training svm ... [Elapsed: 57.2s]  Training svm ... [Elapsed: 57.7s]  Training svm ... [Elapsed: 58.3s]  Training svm ... [Elapsed: 58.8s]  Training svm ... [Elapsed: 59.3s]  Training svm ... [Elapsed: 59.8s]  Training svm ... [Elapsed: 60.3s]  Training svm ... [Elapsed: 60.8s]  Training svm ... [Elapsed: 61.3s]  Training svm ... [Elapsed: 61.8s]  Training svm ... [Elapsed: 62.3s]  Training svm ... [Elapsed: 62.8s]  Training svm ... [Elapsed: 63.3s]  Training svm ... [Elapsed: 63.8s]  Training svm ... [Elapsed: 64.3s]  Training svm ... [Elapsed: 64.8s]  Training svm ... [Elapsed: 65.3s]  Training svm ... [Elapsed: 65.8s]  Training svm ... [Elapsed: 66.3s]  Training svm ... [Elapsed: 66.8s]  Training svm ... [Elapsed: 67.3s]  Training svm ... [Elapsed: 67.8s]  Training svm ... [Elapsed: 68.3s]  Training svm ... [Elapsed: 68.8s]  Training svm ... [Elapsed: 69.3s]  Training svm ... [Elapsed: 69.8s]  Training svm ... [Elapsed: 70.3s]  Training svm ... [Elapsed: 70.8s]  Training svm ... [Elapsed: 71.3s]  Training svm ... [Elapsed: 71.8s]  Training svm ... [Elapsed: 72.3s]  Training svm ... [Elapsed: 72.8s]  Training svm ... [Elapsed: 73.3s]  Training svm ... [Elapsed: 73.8s]  Training svm ... [Elapsed: 74.3s]  Training svm ... [Elapsed: 74.8s]  Training svm ... [Elapsed: 75.3s]  Training svm ... [Elapsed: 75.8s]  Training svm ... [Elapsed: 76.3s]  Training svm ... [Elapsed: 76.8s]  Training svm ... [Elapsed: 77.3s]  Training svm ... [Elapsed: 77.8s]  Training svm ... [Elapsed: 78.3s]  Training svm ... [Elapsed: 78.8s]  Training svm ... [Elapsed: 79.3s]  Training svm ... [Elapsed: 79.8s]  Training svm ... [Elapsed: 80.3s]  Training svm ... [Elapsed: 80.8s]  Training svm ... [Elapsed: 81.3s]  Training svm ... [Elapsed: 81.8s]  Training svm ... [Elapsed: 82.3s]  Training svm ... [Elapsed: 82.8s]  Training svm ... [Elapsed: 83.3s]  Training svm ... [Elapsed: 83.8s]  Training svm ... [Elapsed: 84.3s]  Training svm ... [Elapsed: 84.8s]  Training svm ... [Elapsed: 85.3s]  Training svm ... [Elapsed: 85.8s]  Training svm ... [Elapsed: 86.3s]  Training svm ... [Elapsed: 86.8s]  Training svm ... [Elapsed: 87.3s]  Training svm ... [Elapsed: 87.8s]  Training svm ... [Elapsed: 88.3s]  Training svm ... [Elapsed: 88.8s]  Training svm ... [Elapsed: 89.3s]  Training svm ... [Elapsed: 89.8s]  Training svm ... [Elapsed: 90.3s]  Training svm ... [Elapsed: 90.8s]  Training svm ... [Elapsed: 91.3s]  Training svm ... [Elapsed: 91.8s]  Training svm ... [Elapsed: 92.3s]  Training svm ... [Elapsed: 92.8s]  Training svm ... [Elapsed: 93.3s]  Training svm ... [Elapsed: 93.8s]  Training svm ... [Elapsed: 94.3s]  Training svm ... [Elapsed: 94.8s]  Training svm ... [Elapsed: 95.3s]  Training svm ... [Elapsed: 95.8s]  Training svm ... [Elapsed: 96.3s]  Training svm ... [Elapsed: 96.8s]  Training svm ... [Elapsed: 97.3s]  Training svm ... [Elapsed: 97.8s]  Training svm ... [Elapsed: 98.3s]  Training svm ... [Elapsed: 98.8s]  Training svm ... [Elapsed: 99.3s]  Training svm ... [Elapsed: 99.8s]  Training svm ... [Elapsed: 100.3s]  Training svm ... [Elapsed: 100.8s]  Training svm ... [Elapsed: 101.3s]  Training svm ... [Elapsed: 101.8s]  Training svm ... [Elapsed: 102.3s]  Training svm ... [Elapsed: 102.8s]  Training svm ... [Elapsed: 103.3s]  Training svm ... [Elapsed: 103.8s]  Training svm ... [Elapsed: 104.4s]  Training svm ... [Elapsed: 104.9s]  Training svm ... [Elapsed: 105.4s]  Training svm ... [Elapsed: 105.9s]  Training svm ... [Elapsed: 106.4s]  Training svm ... [Elapsed: 106.9s]  Training svm ... [Elapsed: 107.4s]  Training svm ... [Elapsed: 107.9s]  Training svm ... [Elapsed: 108.4s]  Training svm ... [Elapsed: 108.9s]  Training svm ... [Elapsed: 109.4s]  Training svm ... [Elapsed: 109.9s]  Training svm ... [Elapsed: 110.4s]  Training svm ... [Elapsed: 110.9s]  Training svm ... [Elapsed: 111.4s]  Training svm ... [Elapsed: 111.9s]  Training svm ... [Elapsed: 112.4s]  Training svm ... [Elapsed: 112.9s]  Training svm ... [Elapsed: 113.4s]  Training svm ... [Elapsed: 113.9s]  Training svm ... [Elapsed: 114.4s]  Training svm ... [Elapsed: 114.9s]  Training svm ... [Elapsed: 115.4s]  Training svm ... [Elapsed: 115.9s]  Training svm ... [Elapsed: 116.4s]  Training svm ... [Elapsed: 116.9s]  Training svm ... [Elapsed: 117.4s]  Training svm ... [Elapsed: 117.9s]  Training svm ... [Elapsed: 118.4s]  Training svm ... [Elapsed: 118.9s]  Training svm ... [Elapsed: 119.4s]  Training svm ... [Elapsed: 119.9s]  Training svm ... [Elapsed: 120.4s]  Training svm ... [Elapsed: 120.9s]  Training svm ... [Elapsed: 121.4s]  Training svm ... [Elapsed: 121.9s]  Training svm ... [Elapsed: 122.4s]  Training svm ... [Elapsed: 122.9s]  Training svm ... [Elapsed: 123.4s]  Training svm ... [Elapsed: 123.9s]  Training svm ... [Elapsed: 124.4s]  Training svm ... [Elapsed: 124.9s]  Training svm ... [Elapsed: 125.4s]  Training svm ... [Elapsed: 125.9s]  Training svm ... [Elapsed: 126.4s]  Training svm ... [Elapsed: 126.9s]  Training svm ... [Elapsed: 127.4s]  Training svm ... [Elapsed: 127.9s]  Training svm ... [Elapsed: 128.4s]  Training svm ... [Elapsed: 128.9s]  Training svm ... [Elapsed: 129.4s]  Training svm ... [Elapsed: 129.9s]  Training svm ... [Elapsed: 130.4s]  Training svm ... [Elapsed: 130.9s]  Training svm ... [Elapsed: 131.4s]  Training svm ... [Elapsed: 131.9s]  Training svm ... [Elapsed: 132.4s]  Training svm ... [Elapsed: 132.9s]  Training svm ... [Elapsed: 133.4s]  Training svm ... [Elapsed: 133.9s]  Training svm ... [Elapsed: 134.4s]  Training svm ... [Elapsed: 134.9s]  Training svm ... [Elapsed: 135.4s]  Training svm ... [Elapsed: 135.9s]  Training svm ... [Elapsed: 136.4s]  Training svm ... [Elapsed: 136.9s]  Training svm ... [Elapsed: 137.4s]  Training svm ... [Elapsed: 137.9s]  Training svm ... [Elapsed: 138.4s]  Training svm ... [Elapsed: 138.9s]  Training svm ... [Elapsed: 139.4s]  Training svm ... [Elapsed: 139.9s]  Training svm ... [Elapsed: 140.4s]  Training svm ... [Elapsed: 140.9s]  Training svm ... [Elapsed: 141.4s]  Training svm ... [Elapsed: 141.9s]  Training svm ... [Elapsed: 142.4s]  Training svm ... [Elapsed: 142.9s]  Training svm ... [Elapsed: 143.4s]  Training svm ... [Elapsed: 143.9s]  Training svm ... [Elapsed: 144.4s]  Training svm ... [Elapsed: 144.9s]  Training svm ... [Elapsed: 145.4s]  Training svm ... [Elapsed: 145.9s]  Training svm ... [Elapsed: 146.4s]  Training svm ... [Elapsed: 146.9s]  Training svm ... [Elapsed: 147.4s]  Training svm ... [Elapsed: 147.9s]  Training svm ... [Elapsed: 148.4s]  Training svm ... [Elapsed: 148.9s]  Training svm ... [Elapsed: 149.4s]  Training svm ... [Elapsed: 149.9s]  Training svm ... [Elapsed: 150.5s]  Training svm ... [Elapsed: 151.0s]  Training svm ... [Elapsed: 151.5s]  Training svm ... [Elapsed: 152.0s]  Training svm ... [Elapsed: 152.5s]  Training svm ... [Elapsed: 153.0s]  Training svm ... [Elapsed: 153.5s]  Training svm ... [Elapsed: 154.0s]  Training svm ... [Elapsed: 154.5s]  Training svm ... [Elapsed: 155.0s]  Training svm ... [Elapsed: 155.5s]  Training svm ... [Elapsed: 156.0s]  Training svm ... [Elapsed: 156.5s]  Training svm ... [Elapsed: 157.0s]  Training svm ... [Elapsed: 157.5s]  Training svm ... [Elapsed: 158.0s]  Training svm ... [Elapsed: 158.5s]  Training svm ... [Elapsed: 159.0s]  Training svm ... [Elapsed: 159.5s]  Training svm ... [Elapsed: 160.0s]  Training svm ... [Elapsed: 160.5s]  Training svm ... [Elapsed: 161.0s]  Training svm ... [Elapsed: 161.5s]  Training svm ... [Elapsed: 162.0s]  Training svm ... [Elapsed: 162.5s]  Training svm ... [Elapsed: 163.0s]  Training svm ... [Elapsed: 163.5s]  Training svm ... [Elapsed: 164.0s]  Training svm ... [Elapsed: 164.5s]  Training svm ... [Elapsed: 165.0s]  Training svm ... [Elapsed: 165.5s]  Training svm ... [Elapsed: 166.0s]  Training svm ... [Elapsed: 166.5s]  Training svm ... [Elapsed: 167.0s]  Training svm ... [Elapsed: 167.5s]  Training svm ... [Elapsed: 168.0s]  Training svm ... [Elapsed: 168.5s]  Training svm ... [Elapsed: 169.0s]  Training svm ... [Elapsed: 169.5s]  Training svm ... [Elapsed: 170.0s]  Training svm ... [Elapsed: 170.5s]  Training svm ... [Elapsed: 171.0s]  Training svm ... [Elapsed: 171.5s]  Training svm ... [Elapsed: 172.0s]  Training svm ... [Elapsed: 172.5s]  Training svm ... [Elapsed: 173.0s]  Training svm ... [Elapsed: 173.5s]  Training svm ... [Elapsed: 174.0s]  Training svm ... [Elapsed: 174.5s]  Training svm ... [Elapsed: 175.0s]  Training svm ... [Elapsed: 175.5s]  Training svm ... [Elapsed: 176.0s]  Training svm ... [Elapsed: 176.5s]  Training svm ... [Elapsed: 177.0s]  Training svm ... [Elapsed: 177.5s]  Training svm ... [Elapsed: 178.0s]  Training svm ... [Elapsed: 178.5s]  Training svm ... [Elapsed: 179.0s]  Training svm ... [Elapsed: 179.5s]  Training svm ... [Elapsed: 180.0s]  Training svm ... [Elapsed: 180.5s]  Training svm ... [Elapsed: 181.0s]  Training svm ... [Elapsed: 181.5s]  Training svm ... [Elapsed: 182.0s]  Training svm ... [Elapsed: 182.5s]  Training svm ... [Elapsed: 183.0s]  Training svm ... [Elapsed: 183.5s]  Training svm ... [Elapsed: 184.0s]  Training svm ... [Elapsed: 184.5s]  Training svm ... [Elapsed: 185.0s]  Training svm ... [Elapsed: 185.5s]  Training svm ... [Elapsed: 186.0s]  Training svm ... [Elapsed: 186.5s]  Training svm ... [Elapsed: 187.0s]  Training svm ... [Elapsed: 187.5s]  Training svm ... [Elapsed: 188.0s]  Training svm ... [Elapsed: 188.5s]  Training svm ... [Elapsed: 189.0s]  Training svm ... [Elapsed: 189.5s]  Training svm ... [Elapsed: 190.0s]  Training svm ... [Elapsed: 190.5s]  Training svm ... [Elapsed: 191.0s]  Training svm ... [Elapsed: 191.5s]  Training svm ... [Elapsed: 192.0s]  Training svm ... [Elapsed: 192.5s]  Training svm ... [Elapsed: 193.0s]  Training svm ... [Elapsed: 193.5s]  Training svm ... [Elapsed: 194.0s]  Training svm ... [Elapsed: 194.5s]  Training svm ... [Elapsed: 195.0s]  Training svm ... [Elapsed: 195.5s]  Training svm ... [Elapsed: 196.0s]  Training svm ... [Elapsed: 196.5s]  Training svm ... [Elapsed: 197.0s]  Training svm ... [Elapsed: 197.5s]  Training svm ... [Elapsed: 198.1s]  Training svm ... [Elapsed: 198.6s]  Training svm ... [Elapsed: 199.1s]  Training svm ... [Elapsed: 199.6s]  Training svm ... [Elapsed: 200.1s]  Training svm ... [Elapsed: 200.6s]  Training svm ... [Elapsed: 201.1s]  Training svm ... [Elapsed: 201.6s]  Training svm ... [Elapsed: 202.1s]  Training svm ... [Elapsed: 202.6s]  Training svm ... [Elapsed: 203.1s]  Training svm ... [Elapsed: 203.6s]  Training svm ... [Elapsed: 204.1s]  Training svm ... [Elapsed: 204.6s]  Training svm ... [Elapsed: 205.1s]  Training svm ... [Elapsed: 205.6s]  Training svm ... [Elapsed: 206.1s]  Training svm ... [Elapsed: 206.6s]  Training svm ... [Elapsed: 207.1s]  Training svm ... [Elapsed: 207.6s]  Training svm ... [Elapsed: 208.1s]  Training svm ... [Elapsed: 208.6s]  Training svm ... [Elapsed: 209.1s]  Training svm ... [Elapsed: 210.4s]  [Duration] Finished training svm in 210.95s
+
+Engineered model results:
+
+  Model                         RMSE      MAE     MAPE
+  -----------------------------------------------------
+  decision_tree                14.07     7.19    24.9%
+  gradient_boosting            12.96     5.47    16.6%
+  linear_regression            15.76     8.68    30.8%
+  neural_network               19.49    12.19    43.9%
+  random_forest                13.24     5.65    17.3%
+  svm                          15.77     8.76    30.8%
+  [Duration] Engineered models training & evaluation finished in 559.16s
+wandb: [wandb.login()] Using explicit session credentials for https://api.wandb.ai.
+wandb: Appending key for api.wandb.ai to your netrc file: C:\Users\netan\_netrc
+wandb: Currently logged in as: rahumn (dsma_2026) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: ⢿ Waiting for wandb.init()...
+mwandb: ⣻ Waiting for wandb.init()...
+mwandb: ⣽ Waiting for wandb.init()...
+mwandb: ⣾ Waiting for wandb.init()...
+mwandb: ⣷ setting up run o96cp6ng (0.5s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_193838-o96cp6ng
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run engineered-gradient_boosting
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/o96cp6ng
+wandb: ⢿ updating run metadata (0.9s)
+wandb: ⢿ uploading summary (0.0s)
+mmwandb: ⣻ updating run metadata (0.9s)
+wandb: ⣻ uploading summary (0.0s)
+mmwandb: ⣽ updating run metadata (0.9s)
+wandb: ⣽ uploading summary (0.0s)
+mmwandb: ⣾ updating run metadata (0.9s)
+wandb: ⣾ uploading summary (0.0s)
+mmwandb: ⣷ uploading config.yaml 0B/1.6KB (0.0s)
+wandb: ⣷ uploading wandb-metadata.json 0B/874B (0.0s)
+wandb: ⣷ uploading requirements.txt 0B/2.2KB (0.0s)
+wandb: ⣷ uploading wandb-summary.json 0B/126B (0.0s)
+mmmmwandb: ⣯ uploading config.yaml 0B/1.6KB (0.0s)
+wandb: ⣯ uploading wandb-metadata.json 0B/874B (0.0s)
+wandb: ⣯ uploading requirements.txt 0B/2.2KB (0.0s)
+wandb: ⣯ uploading wandb-summary.json 0B/126B (0.0s)
+mmmmwandb: ⣟ uploading config.yaml 0B/1.6KB (0.0s)
+wandb: ⣟ uploading wandb-metadata.json 0B/874B (0.0s)
+wandb: ⣟ uploading requirements.txt 0B/2.2KB (0.0s)
+wandb: ⣟ uploading wandb-summary.json 0B/126B (0.0s)
+mmmmwandb: ⡿ uploading config.yaml 0B/1.6KB (0.0s)
+wandb: ⡿ uploading wandb-metadata.json 0B/874B (0.0s)
+wandb: ⡿ uploading requirements.txt 0B/2.2KB (0.0s)
+wandb: ⡿ uploading wandb-summary.json 0B/126B (0.0s)
+mmmmwandb: ⢿ uploading config.yaml 0B/1.6KB (0.0s)
+wandb: ⢿ uploading wandb-metadata.json 0B/874B (0.0s)
+wandb: ⢿ uploading requirements.txt 0B/2.2KB (0.0s)
+wandb: ⢿ uploading wandb-summary.json 0B/126B (0.0s)
+mmmmwandb: ⣻ uploading wandb-metadata.json 874B/874B (0.5s)
+wandb: ⣻ uploading requirements.txt 2.2KB/2.2KB (0.5s)
+wandb: ⣻ uploading wandb-summary.json 126B/126B (0.5s)
+mmmwandb: ⣽ uploading wandb-metadata.json 874B/874B (0.5s)
+wandb: ⣽ uploading requirements.txt 2.2KB/2.2KB (0.5s)
+wandb: ⣽ uploading wandb-summary.json 126B/126B (0.5s)
+mmmwandb: ⣾ uploading wandb-metadata.json 874B/874B (0.5s)
+wandb: ⣾ uploading requirements.txt 2.2KB/2.2KB (0.5s)
+wandb: ⣾ uploading wandb-summary.json 126B/126B (0.5s)
+mmmwandb: ⣷ uploading wandb-metadata.json 874B/874B (0.5s)
+wandb: ⣷ uploading requirements.txt 2.2KB/2.2KB (0.5s)
+wandb: ⣷ uploading wandb-summary.json 126B/126B (0.5s)
+mmmwandb: ⣯ uploading wandb-metadata.json 874B/874B (0.5s)
+wandb: ⣯ uploading requirements.txt 2.2KB/2.2KB (0.5s)
+wandb: ⣯ uploading wandb-summary.json 126B/126B (0.5s)
+mmmwandb: ⣟ uploading wandb-metadata.json 874B/874B (1.0s)
+wandb: ⣟ uploading requirements.txt 2.2KB/2.2KB (1.0s)
+mmwandb: ⡿ uploading wandb-metadata.json 874B/874B (1.0s)
+wandb: ⡿ uploading requirements.txt 2.2KB/2.2KB (1.0s)
+mmwandb: ⢿ uploading wandb-metadata.json 874B/874B (1.0s)
+wandb: ⢿ uploading requirements.txt 2.2KB/2.2KB (1.0s)
+mmwandb: ⣻ uploading wandb-metadata.json 874B/874B (1.0s)
+wandb: ⣻ uploading requirements.txt 2.2KB/2.2KB (1.0s)
+mmwandb: ⣽ uploading history steps 0-0, summary (0.4s)
+mwandb: ⣾ uploading history steps 0-0, summary (0.4s)
+mwandb: 
+wandb: Run history:
+wandb:  mae ▁
+wandb: mape ▁
+wandb: rmse ▁
+wandb: 
+wandb: Run summary:
+wandb:  mae 5.4651
+wandb: mape 16.5797
+wandb: rmse 12.9554
+wandb: 
+wandb:  View run engineered-gradient_boosting at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/o96cp6ng
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb: Synced 4 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260616_193838-o96cp6ng\logs
+[W&B] Successfully logged engineered-gradient_boosting evaluation run.
+wandb: WARNING [wandb.login()] Changing session credentials to explicit value for https://api.wandb.ai.
+wandb: Appending key for api.wandb.ai to your netrc file: C:\Users\netan\_netrc
+wandb: ⢿ setting up run mdntg78u (0.0s)
+mwandb: ⣻ setting up run mdntg78u (0.0s)
+mwandb: ⣽ setting up run mdntg78u (0.0s)
+mwandb: ⣾ setting up run mdntg78u (0.0s)
+mwandb: ⣷ setting up run mdntg78u (0.5s)
+mwandb: ⣯ setting up run mdntg78u (0.5s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_193851-mdntg78u
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run engineered-random_forest
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/mdntg78u
+wandb: ⢿ updating run metadata (0.4s)
+wandb: ⢿ uploading summary (0.0s)
+mmwandb: ⣻ updating run metadata (0.4s)
+wandb: ⣻ uploading summary (0.0s)
+mmwandb: ⣽ updating run metadata (0.4s)
+wandb: ⣽ uploading summary (0.0s)
+mmwandb: ⣾ updating run metadata (0.4s)
+wandb: ⣾ uploading summary (0.0s)
+mmwandb: ⣷ Finishing up...
+mwandb: ⣯ Finishing up...
+mwandb: ⣟ Finishing up...
+mwandb: ⡿ Finishing up...
+mwandb: ⢿ Finishing up...
+mwandb: ⣻ uploading config.yaml 1.6KB/1.6KB (0.4s)
+wandb: ⣻ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣻ uploading wandb-summary.json 126B/126B (0.4s)
+mmmwandb: ⣽ uploading config.yaml 1.6KB/1.6KB (0.4s)
+wandb: ⣽ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣽ uploading wandb-summary.json 126B/126B (0.4s)
+mmmwandb: ⣾ uploading config.yaml 1.6KB/1.6KB (0.4s)
+wandb: ⣾ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣾ uploading wandb-summary.json 126B/126B (0.4s)
+mmmwandb: ⣷ uploading config.yaml 1.6KB/1.6KB (0.4s)
+wandb: ⣷ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣷ uploading wandb-summary.json 126B/126B (0.4s)
+mmmwandb: ⣯ uploading config.yaml 1.6KB/1.6KB (0.4s)
+wandb: ⣯ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣯ uploading wandb-summary.json 126B/126B (0.4s)
+mmmwandb: ⣟ uploading config.yaml 1.6KB/1.6KB (0.9s)
+wandb: ⣟ uploading wandb-metadata.json 874B/874B (0.9s)
+wandb: ⣟ uploading wandb-summary.json 126B/126B (0.9s)
+mmmwandb: ⡿ uploading config.yaml 1.6KB/1.6KB (0.9s)
+wandb: ⡿ uploading wandb-metadata.json 874B/874B (0.9s)
+wandb: ⡿ uploading wandb-summary.json 126B/126B (0.9s)
+mmmwandb: ⢿ uploading config.yaml 1.6KB/1.6KB (0.9s)
+wandb: ⢿ uploading wandb-metadata.json 874B/874B (0.9s)
+wandb: ⢿ uploading wandb-summary.json 126B/126B (0.9s)
+mmmwandb: 
+wandb: Run history:
+wandb:  mae ▁
+wandb: mape ▁
+wandb: rmse ▁
+wandb: 
+wandb: Run summary:
+wandb:  mae 5.6461
+wandb: mape 17.3435
+wandb: rmse 13.2438
+wandb: 
+wandb:  View run engineered-random_forest at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/mdntg78u
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb: Synced 4 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260616_193851-mdntg78u\logs
+[W&B] Successfully logged engineered-random_forest evaluation run.
+wandb: WARNING [wandb.login()] Changing session credentials to explicit value for https://api.wandb.ai.
+wandb: Appending key for api.wandb.ai to your netrc file: C:\Users\netan\_netrc
+wandb: ⢿ setting up run 57z69l04 (0.0s)
+mwandb: ⣻ setting up run 57z69l04 (0.0s)
+mwandb: ⣽ setting up run 57z69l04 (0.0s)
+mwandb: ⣾ setting up run 57z69l04 (0.0s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_193857-57z69l04
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run engineered-decision_tree
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/57z69l04
+wandb: ⢿ updating run metadata (0.4s)
+wandb: ⢿ uploading summary (0.0s)
+mmwandb: ⣻ updating run metadata (0.4s)
+wandb: ⣻ uploading summary (0.0s)
+mmwandb: ⣽ updating run metadata (0.4s)
+wandb: ⣽ uploading summary (0.0s)
+mmwandb: ⣾ updating run metadata (0.4s)
+wandb: ⣾ uploading summary (0.0s)
+mmwandb: ⣷ uploading summary (0.5s)
+mwandb: ⣯ uploading summary (0.5s)
+mwandb: ⣟ uploading summary (0.5s)
+mwandb: ⡿ uploading summary (0.5s)
+mwandb: ⢿ uploading summary (0.5s)
+mwandb: ⣻ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣻ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣻ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣻ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣽ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣽ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣽ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣽ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣾ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣾ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣾ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣾ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣷ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣷ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣷ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣷ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣯ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣯ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣯ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣯ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣟ uploading requirements.txt 2.2KB/2.2KB (0.9s)
+wandb: ⣟ uploading wandb-summary.json 125B/125B (0.9s)
+wandb: ⣟ uploading config.yaml 1.6KB/1.6KB (0.9s)
+mmmwandb: ⡿ uploading requirements.txt 2.2KB/2.2KB (0.9s)
+wandb: ⡿ uploading wandb-summary.json 125B/125B (0.9s)
+wandb: ⡿ uploading config.yaml 1.6KB/1.6KB (0.9s)
+mmmwandb: ⢿ uploading requirements.txt 2.2KB/2.2KB (0.9s)
+wandb: ⢿ uploading wandb-summary.json 125B/125B (0.9s)
+wandb: ⢿ uploading config.yaml 1.6KB/1.6KB (0.9s)
+mmmwandb: ⣻ uploading requirements.txt 2.2KB/2.2KB (0.9s)
+wandb: ⣻ uploading wandb-summary.json 125B/125B (0.9s)
+wandb: ⣻ uploading config.yaml 1.6KB/1.6KB (0.9s)
+mmmwandb: 
+wandb: Run history:
+wandb:  mae ▁
+wandb: mape ▁
+wandb: rmse ▁
+wandb: 
+wandb: Run summary:
+wandb:  mae 7.1851
+wandb: mape 24.885
+wandb: rmse 14.0716
+wandb: 
+wandb:  View run engineered-decision_tree at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/57z69l04
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb: Synced 4 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260616_193857-57z69l04\logs
+[W&B] Successfully logged engineered-decision_tree evaluation run.
+wandb: WARNING [wandb.login()] Changing session credentials to explicit value for https://api.wandb.ai.
+wandb: Appending key for api.wandb.ai to your netrc file: C:\Users\netan\_netrc
+wandb: ⢿ setting up run 6kwskp0w (0.0s)
+mwandb: ⣻ setting up run 6kwskp0w (0.0s)
+mwandb: ⣽ setting up run 6kwskp0w (0.0s)
+mwandb: ⣾ setting up run 6kwskp0w (0.0s)
+mwandb: ⣷ setting up run 6kwskp0w (0.5s)
+mwandb: ⣯ setting up run 6kwskp0w (0.5s)
+mwandb: ⣟ setting up run 6kwskp0w (0.5s)
+mwandb: ⡿ setting up run 6kwskp0w (0.5s)
+mwandb: ⢿ setting up run 6kwskp0w (0.5s)
+mwandb: ⣻ setting up run 6kwskp0w (1.0s)
+mwandb: ⣽ setting up run 6kwskp0w (1.0s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_193903-6kwskp0w
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run engineered-linear_regression
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/6kwskp0w
+wandb: ⢿ updating run metadata (0.5s)
+wandb: ⢿ uploading summary (0.0s)
+mmwandb: ⣻ updating run metadata (0.5s)
+wandb: ⣻ uploading summary (0.0s)
+mmwandb: ⣽ updating run metadata (0.5s)
+wandb: ⣽ uploading summary (0.0s)
+mmwandb: ⣾ updating run metadata (0.5s)
+wandb: ⣾ uploading summary (0.0s)
+mmwandb: ⣷ Finishing up...
+mwandb: ⣯ Finishing up...
+mwandb: ⣟ Finishing up...
+mwandb: ⡿ Finishing up...
+mwandb: ⢿ Finishing up...
+mwandb: ⣻ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣻ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣻ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣻ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣽ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣽ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣽ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣽ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣾ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣾ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣾ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣾ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣷ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣷ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣷ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣷ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣯ uploading wandb-metadata.json 874B/874B (0.4s)
+wandb: ⣯ uploading requirements.txt 2.2KB/2.2KB (0.4s)
+wandb: ⣯ uploading wandb-summary.json 125B/125B (0.4s)
+wandb: ⣯ uploading config.yaml 1.6KB/1.6KB (0.4s)
+mmmmwandb: ⣟ uploading wandb-metadata.json 874B/874B (0.9s)
+wandb: ⣟ uploading requirements.txt 2.2KB/2.2KB (0.9s)
+wandb: ⣟ uploading wandb-summary.json 125B/125B (0.9s)
+mmmwandb: ⡿ uploading wandb-metadata.json 874B/874B (0.9s)
+wandb: ⡿ uploading requirements.txt 2.2KB/2.2KB (0.9s)
+wandb: ⡿ uploading wandb-summary.json 125B/125B (0.9s)
+mmmwandb: ⢿ uploading wandb-metadata.json 874B/874B (0.9s)
+wandb: ⢿ uploading requirements.txt 2.2KB/2.2KB (0.9s)
+wandb: ⢿ uploading wandb-summary.json 125B/125B (0.9s)
+mmmwandb: ⣻ uploading wandb-metadata.json 874B/874B (0.9s)
+wandb: ⣻ uploading requirements.txt 2.2KB/2.2KB (0.9s)
+wandb: ⣻ uploading wandb-summary.json 125B/125B (0.9s)
+mmmwandb: 
+wandb: Run history:
+wandb:  mae ▁
+wandb: mape ▁
+wandb: rmse ▁
+wandb: 
+wandb: Run summary:
+wandb:  mae 8.6778
+wandb: mape 30.7764
+wandb: rmse 15.7586
+wandb: 
+wandb:  View run engineered-linear_regression at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/6kwskp0w
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb: Synced 4 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260616_193903-6kwskp0w\logs
+[W&B] Successfully logged engineered-linear_regression evaluation run.
+wandb: WARNING [wandb.login()] Changing session credentials to explicit value for https://api.wandb.ai.
+wandb: Appending key for api.wandb.ai to your netrc file: C:\Users\netan\_netrc
+wandb: ⢿ setting up run 6yvdz0ra (0.0s)
+mwandb: ⣻ setting up run 6yvdz0ra (0.0s)
+mwandb: ⣽ setting up run 6yvdz0ra (0.0s)
+mwandb: ⣾ setting up run 6yvdz0ra (0.0s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_193909-6yvdz0ra
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run engineered-svm
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/6yvdz0ra
+wandb: ⢿ updating run metadata (0.4s)
+wandb: ⢿ uploading summary (0.0s)
+mmwandb: ⣻ updating run metadata (0.4s)
+wandb: ⣻ uploading summary (0.0s)
+mmwandb: ⣽ updating run metadata (0.4s)
+wandb: ⣽ uploading summary (0.0s)
+mmwandb: ⣾ updating run metadata (0.4s)
+wandb: ⣾ uploading summary (0.0s)
+mmwandb: ⣷ updating run metadata (0.9s)
+wandb: ⣷ uploading summary (0.5s)
+mmwandb: ⣯ updating run metadata (0.9s)
+wandb: ⣯ uploading summary (0.5s)
+mmwandb: ⣟ updating run metadata (0.9s)
+wandb: ⣟ uploading summary (0.5s)
+mmwandb: ⡿ updating run metadata (0.9s)
+wandb: ⡿ uploading summary (0.5s)
+mmwandb: ⢿ updating run metadata (0.9s)
+wandb: ⢿ uploading summary (0.5s)
+mmwandb: ⣻ uploading wandb-metadata.json 874B/874B (0.2s)
+wandb: ⣻ uploading requirements.txt 2.2KB/2.2KB (0.2s)
+wandb: ⣻ uploading wandb-summary.json 125B/125B (0.2s)
+wandb: ⣻ uploading config.yaml 1.6KB/1.6KB (0.2s)
+mmmmwandb: ⣽ uploading wandb-metadata.json 874B/874B (0.2s)
+wandb: ⣽ uploading requirements.txt 2.2KB/2.2KB (0.2s)
+wandb: ⣽ uploading wandb-summary.json 125B/125B (0.2s)
+wandb: ⣽ uploading config.yaml 1.6KB/1.6KB (0.2s)
+mmmmwandb: ⣾ uploading wandb-metadata.json 874B/874B (0.2s)
+wandb: ⣾ uploading requirements.txt 2.2KB/2.2KB (0.2s)
+wandb: ⣾ uploading wandb-summary.json 125B/125B (0.2s)
+wandb: ⣾ uploading config.yaml 1.6KB/1.6KB (0.2s)
+mmmmwandb: ⣷ uploading wandb-metadata.json 874B/874B (0.2s)
+wandb: ⣷ uploading requirements.txt 2.2KB/2.2KB (0.2s)
+wandb: ⣷ uploading wandb-summary.json 125B/125B (0.2s)
+wandb: ⣷ uploading config.yaml 1.6KB/1.6KB (0.2s)
+mmmmwandb: ⣯ uploading wandb-metadata.json 874B/874B (0.2s)
+wandb: ⣯ uploading requirements.txt 2.2KB/2.2KB (0.2s)
+wandb: ⣯ uploading wandb-summary.json 125B/125B (0.2s)
+wandb: ⣯ uploading config.yaml 1.6KB/1.6KB (0.2s)
+mmmmwandb: ⣟ uploading wandb-metadata.json 874B/874B (0.7s)
+wandb: ⣟ uploading requirements.txt 2.2KB/2.2KB (0.7s)
+wandb: ⣟ uploading wandb-summary.json 125B/125B (0.7s)
+mmmwandb: ⡿ uploading wandb-metadata.json 874B/874B (0.7s)
+wandb: ⡿ uploading requirements.txt 2.2KB/2.2KB (0.7s)
+wandb: ⡿ uploading wandb-summary.json 125B/125B (0.7s)
+mmmwandb: ⢿ uploading wandb-metadata.json 874B/874B (0.7s)
+wandb: ⢿ uploading requirements.txt 2.2KB/2.2KB (0.7s)
+wandb: ⢿ uploading wandb-summary.json 125B/125B (0.7s)
+mmmwandb: ⣻ uploading wandb-metadata.json 874B/874B (0.7s)
+wandb: ⣻ uploading requirements.txt 2.2KB/2.2KB (0.7s)
+wandb: ⣻ uploading wandb-summary.json 125B/125B (0.7s)
+mmmwandb: ⣽ uploading history steps 0-0, summary (0.2s)
+mwandb: ⣾ uploading history steps 0-0, summary (0.2s)
+mwandb: 
+wandb: Run history:
+wandb:  mae ▁
+wandb: mape ▁
+wandb: rmse ▁
+wandb: 
+wandb: Run summary:
+wandb:  mae 8.7605
+wandb: mape 30.8387
+wandb: rmse 15.768
+wandb: 
+wandb:  View run engineered-svm at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/6yvdz0ra
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb: Synced 4 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260616_193909-6yvdz0ra\logs
+[W&B] Successfully logged engineered-svm evaluation run.
+wandb: WARNING [wandb.login()] Changing session credentials to explicit value for https://api.wandb.ai.
+wandb: Appending key for api.wandb.ai to your netrc file: C:\Users\netan\_netrc
+wandb: ⢿ setting up run xvlsttwu (0.0s)
+mwandb: ⣻ setting up run xvlsttwu (0.0s)
+mwandb: ⣽ setting up run xvlsttwu (0.0s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_193917-xvlsttwu
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run engineered-neural_network
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/xvlsttwu
+wandb: ⢿ updating run metadata (0.5s)
+wandb: ⢿ uploading summary (0.0s)
+mmwandb: ⣻ updating run metadata (0.5s)
+wandb: ⣻ uploading summary (0.0s)
+mmwandb: ⣽ updating run metadata (0.5s)
+wandb: ⣽ uploading summary (0.0s)
+mmwandb: ⣾ updating run metadata (0.5s)
+wandb: ⣾ uploading summary (0.0s)
+mmwandb: ⣷ Finishing up...
+mwandb: ⣯ Finishing up...
+mwandb: ⣟ Finishing up...
+mwandb: ⡿ Finishing up...
+mwandb: ⢿ Finishing up...
+mwandb: ⣻ uploading wandb-metadata.json 874B/874B (0.4s)
+mwandb: ⣽ uploading wandb-metadata.json 874B/874B (0.4s)
+mwandb: ⣾ uploading wandb-metadata.json 874B/874B (0.4s)
+mwandb: 
+wandb: Run history:
+wandb:  mae ▁
+wandb: mape ▁
+wandb: rmse ▁
+wandb: 
+wandb: Run summary:
+wandb:  mae 12.1875
+wandb: mape 43.9254
+wandb: rmse 19.4922
+wandb: 
+wandb:  View run engineered-neural_network at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/xvlsttwu
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb: Synced 4 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260616_193917-xvlsttwu\logs
+[W&B] Successfully logged engineered-neural_network evaluation run.
+
+******************************
+2.3 Hyperparameter Tuning Sweeps
+******************************
+  Using full dataset (no subsampling) for tuning sweeps...
+  Stratified sample ready: 12,605,709 rows.
+  Phase 1 — Random Search (both model families, wide grid)
+wandb: WARNING The anonymous parameter to wandb.login() has no effect and will be removed in future versions.
+Create sweep with ID: e45pwpmg
+Sweep URL: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/sweeps/e45pwpmg
+wandb: Agent Starting Run: e1p61vh1 with config:
+wandb: 	alpha: 0.1
+wandb: 	fit_intercept: True
+wandb: 	l2_regularization: 0
+wandb: 	learning_rate: 0.05
+wandb: 	max_depth: 10
+wandb: 	max_features: sqrt
+wandb: 	min_samples_leaf: 150
+wandb: 	model_type: decision_tree
+wandb: 	n_estimators: 400
+wandb: 	nn_activation: relu
+wandb: 	nn_epochs: 10
+wandb: 	nn_hidden_layers: [32]
+wandb: 	nn_learning_rate: 0.001
+wandb: 	svm_c: 0.1
+wandb: 	svm_epsilon: 0
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: rahumn (dsma_fit_happens) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: ⢿ Waiting for wandb.init()...
+mwandb: ⣻ Waiting for wandb.init()...
+mwandb: ⣽ Waiting for wandb.init()...
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_193926-e1p61vh1
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run prime-sweep-1
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View sweep at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/sweeps/e45pwpmg
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/e1p61vh1
+wandb: ⢿ updating run metadata (0.0s)
+mwandb: ⣻ updating run metadata (0.0s)
+mwandb: ⣽ updating run metadata (0.0s)
+mwandb: ⣾ updating run metadata (0.0s)
+mwandb: ⣷ Finishing up...
+mwandb: ⣯ Finishing up...
+mwandb: ⣟ Finishing up...
+mwandb: ⡿ Finishing up...
+mwandb: ⢿ Finishing up...
+mwandb: ⣻ uploading config.yaml 1.9KB/1.9KB (0.5s)
+mwandb: ⣽ uploading config.yaml 1.9KB/1.9KB (0.5s)
+mwandb: 
+wandb: Run history:
+wandb:  mae ▁
+wandb: mape ▁
+wandb: rmse ▁
+wandb: 
+wandb: Run summary:
+wandb:  mae 3.41964
+wandb: mape 17.38211
+wandb: rmse 6.64953
+wandb: 
+wandb:  View run prime-sweep-1 at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/e1p61vh1
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb: Synced 4 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260616_193926-e1p61vh1\logs
+wandb: Agent Starting Run: a4s5n338 with config:
+wandb: 	alpha: 100
+wandb: 	fit_intercept: False
+wandb: 	l2_regularization: 0.01
+wandb: 	learning_rate: 0.1
+wandb: 	max_depth: 12
+wandb: 	max_features: sqrt
+wandb: 	min_samples_leaf: 100
+wandb: 	model_type: neural_network
+wandb: 	n_estimators: 200
+wandb: 	nn_activation: relu
+wandb: 	nn_epochs: 10
+wandb: 	nn_hidden_layers: [32]
+wandb: 	nn_learning_rate: 0.01
+wandb: 	svm_c: 0.1
+wandb: 	svm_epsilon: 0.1
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: ⢿ setting up run a4s5n338 (0.0s)
+mwandb: ⣻ setting up run a4s5n338 (0.0s)
+mwandb: ⣽ setting up run a4s5n338 (0.0s)
+mwandb: ⣾ setting up run a4s5n338 (0.0s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_194122-a4s5n338
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run wobbly-sweep-2
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View sweep at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/sweeps/e45pwpmg
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/a4s5n338
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (10) reached and the optimization hasn't converged yet.
+  warnings.warn(
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (10) reached and the optimization hasn't converged yet.
+  warnings.warn(
+C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\nyc_taxi_venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (10) reached and the optimization hasn't converged yet.
+  warnings.warn(
+wandb: ⢿ updating run metadata (0.0s)
+mwandb: ⣻ updating run metadata (0.0s)
+mwandb: ⣽ updating run metadata (0.0s)
+mwandb: ⣾ updating run metadata (0.0s)
+mwandb: ⣷ uploading output.log 801B/801B (0.0s)
+wandb: ⣷ uploading wandb-summary.json 159B/159B (0.0s)
+wandb: ⣷ uploading config.yaml 2.0KB/2.0KB (0.0s)
+mmmwandb: ⣯ uploading output.log 801B/801B (0.0s)
+wandb: ⣯ uploading wandb-summary.json 159B/159B (0.0s)
+wandb: ⣯ uploading config.yaml 2.0KB/2.0KB (0.0s)
+mmmwandb: ⣟ uploading output.log 801B/801B (0.0s)
+wandb: ⣟ uploading wandb-summary.json 159B/159B (0.0s)
+wandb: ⣟ uploading config.yaml 2.0KB/2.0KB (0.0s)
+mmmwandb: ⡿ uploading output.log 801B/801B (0.0s)
+wandb: ⡿ uploading wandb-summary.json 159B/159B (0.0s)
+wandb: ⡿ uploading config.yaml 2.0KB/2.0KB (0.0s)
+mmmwandb: ⢿ uploading output.log 801B/801B (0.0s)
+wandb: ⢿ uploading wandb-summary.json 159B/159B (0.0s)
+wandb: ⢿ uploading config.yaml 2.0KB/2.0KB (0.0s)
+mmmwandb: ⣻ uploading history steps 0-0, summary, console lines 4-5 (0.1s)
+mwandb: ⣽ uploading history steps 0-0, summary, console lines 4-5 (0.1s)
+mwandb: 
+wandb: Run history:
+wandb:  mae ▁
+wandb: mape ▁
+wandb: rmse ▁
+wandb: 
+wandb: Run summary:
+wandb:  mae 6.0416
+wandb: mape 29.82907
+wandb: rmse 10.17493
+wandb: 
+wandb:  View run wobbly-sweep-2 at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/a4s5n338
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260616_194122-a4s5n338\logs
+wandb: Agent Starting Run: xm4065pd with config:
+wandb: 	alpha: 0.1
+wandb: 	fit_intercept: False
+wandb: 	l2_regularization: 0.1
+wandb: 	learning_rate: 0.08
+wandb: 	max_depth: 10
+wandb: 	max_features: sqrt
+wandb: 	min_samples_leaf: 100
+wandb: 	model_type: svm
+wandb: 	n_estimators: 200
+wandb: 	nn_activation: relu
+wandb: 	nn_epochs: 10
+wandb: 	nn_hidden_layers: [32, 16]
+wandb: 	nn_learning_rate: 0.01
+wandb: 	svm_c: 0.1
+wandb: 	svm_epsilon: 0
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: ⢿ setting up run xm4065pd (0.0s)
+mwandb: ⣻ setting up run xm4065pd (0.0s)
+mwandb: ⣽ setting up run xm4065pd (0.0s)
+mwandb: ⣾ setting up run xm4065pd (0.0s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\NYC-TLC-Taxi-DSMA\wandb\run-20260616_194206-xm4065pd
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run valiant-sweep-3
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7
+wandb:  View sweep at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/sweeps/e45pwpmg
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-test7/runs/xm4065pd

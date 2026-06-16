@@ -1,0 +1,168 @@
+
+============================================================
+ACT 1 — Data Exploration & Prep
+============================================================
+
+******************************
+1.1 Data Download
+******************************
+Running download pipeline check...
+============================================================
+INITIALIZING NYC TLC DATA SYNC PIPELINE
+============================================================
+  [EXISTS] yellow_tripdata_2024-01.parquet is already locally available.
+           URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet
+  [EXISTS] yellow_tripdata_2026-01.parquet is already locally available.
+           URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2026-01.parquet
+============================================================
+PIPELINE EXECUTION COMPLETE
+Execution Summary: Successfully verified 2/2 partitions.
+Target Directories:
+  - TRAIN: 'data/raw\train/'
+  - TEST: 'data/raw\test/'
+============================================================
+  [Duration] Data download finished in 0.00s
+
+******************************
+1.2 Data Fundamentals
+******************************
+
+Loading raw training dataset...
+  [SMOKE TEST] Loading only the first partition file: yellow_tripdata_2024-01.parquet
+  [SMOKE TEST] Sampling 1,000 rows from train raw dataset.
+  Train Data: Loaded 1,000 rows x 19 columns
+
+  Train Data Columns and Dtypes:
+    - VendorID                  : int8
+    - tpep_pickup_datetime      : datetime64[us]
+    - tpep_dropoff_datetime     : datetime64[us]
+    - passenger_count           : float32
+    - trip_distance             : float32
+    - RatecodeID                : float32
+    - store_and_fwd_flag        : str
+    - PULocationID              : int16
+    - DOLocationID              : int16
+    - payment_type              : int8
+    - fare_amount               : float32
+    - extra                     : float32
+    - mta_tax                   : float32
+    - tip_amount                : float32
+    - tolls_amount              : float32
+    - improvement_surcharge     : float32
+    - total_amount              : float32
+    - congestion_surcharge      : float32
+    - Airport_fee               : float32
+
+  Train Data Summary Statistics (Transposed):
+                        count                        mean                  min                         25%                  50%                         75%                  max        std
+VendorID               1000.0                       1.747                  1.0                         1.0                  2.0                         2.0                  2.0   0.434948
+tpep_pickup_datetime     1000  2024-01-16 19:48:14.697000  2024-01-01 00:38:50  2024-01-09 16:20:29.500000  2024-01-16 20:33:21  2024-01-24 12:34:12.500000  2024-01-31 23:35:33        NaN
+tpep_dropoff_datetime    1000  2024-01-16 20:03:18.662000  2024-01-01 01:07:11         2024-01-09 16:36:00  2024-01-16 20:42:27         2024-01-24 12:47:55  2024-01-31 23:38:34        NaN
+passenger_count         952.0                    1.341387                  0.0                         1.0                  1.0                         1.0                  6.0    0.84189
+trip_distance          1000.0                     3.35427                  0.0                      1.0175                  1.7                       3.205                25.43   4.398283
+RatecodeID              952.0                    2.210084                  1.0                         1.0                  1.0                         1.0                 99.0  10.478057
+PULocationID           1000.0                     166.695                 10.0                       132.0                162.0                       234.0                264.0  62.969319
+DOLocationID           1000.0                     162.116                  1.0                       114.0                162.0                       234.0                265.0   68.23724
+payment_type           1000.0                        1.14                  0.0                         1.0                  1.0                         1.0                  4.0   0.539157
+fare_amount            1000.0                   18.563499           -65.300003                         8.6                 12.8                   21.200001           131.100006  17.165522
+extra                  1000.0                     1.51325                 -7.5                         0.0                  1.0                         2.5                11.75   1.832859
+mta_tax                1000.0                       0.488                 -0.5                         0.5                  0.5                         0.5                  0.5   0.099327
+tip_amount             1000.0                     3.88872                  0.0                         1.0                  2.8                         4.2           422.700012  13.825794
+tolls_amount           1000.0                     0.54886                  0.0                         0.0                  0.0                         0.0            20.370001   2.004965
+improvement_surcharge  1000.0                       0.982                 -1.0                         1.0                  1.0                         1.0                  1.0   0.188975
+total_amount           1000.0                    27.84708           -69.550003                        15.4                20.23                     29.0425           453.549988  25.802168
+congestion_surcharge    952.0                    2.279412                 -2.5                         2.5                  2.5                         2.5                  2.5   0.763023
+Airport_fee             952.0                    0.150735                -1.75                         0.0                  0.0                         0.0                 1.75   0.504183
+  [Duration] Data fundamentals finished in 2.30s
+
+******************************
+1.3 Data Validation
+******************************
+  Result: SOME CHECKS FAILED (11/12 checks passed)
+
+  #    Column                                       Check                                            Result
+  ---------------------------------------------------------------------------------------------------------
+  1    tpep_pickup_datetime                         not_null                                         OK  
+  2    tpep_dropoff_datetime                        not_null                                         OK  
+  3    tpep_pickup_datetime, tpep_dropoff_datetime  tpep_dropoff_datetime_geq_tpep_pickup_datetime   OK  
+  4    PULocationID                                 not_null                                         OK  
+  5    PULocationID                                 between[1,265]                                   OK  
+  6    DOLocationID                                 not_null                                         OK  
+  7    DOLocationID                                 between[1,265]                                   OK  
+  8    trip_distance                                between[0.0,None]                                OK  
+  9    payment_type, tip_amount                     cash_tip_anomaly_check                           OK  
+  10   total_amount                                 not_null                                         OK  
+  11   total_amount                                 between[0.0,None]                                FAIL
+     >> Failed threshold: 99.10% within range < 100.00%
+  12   fare_amount                                  between[3.0,None]                                OK  
+  [Duration] Data validation finished in 0.01s
+
+******************************
+1.4 Data Cleaning
+******************************
+
+Cleaning training datasets...
+
+============================================================
+STARTING CLEANING PIPELINE
+============================================================
+Loading data from DF...
+Processing DataFrame...
+  Input  rows : 1,000
+  drop_critical_nulls  : no rows dropped
+  drop_pre_december_2023  : no rows dropped
+  fill_non_critical_nulls : filled - RatecodeID (48 -> 1), store_and_fwd_flag (48 -> 'N'), Airport_fee (48 -> 0.0)
+  select_relevant_columns : dropped 9 columns - ['VendorID', 'passenger_count', 'store_and_fwd_flag', 'extra', 'mta_tax', 'tolls_amount', 'improvement_surcharge', 'congestion_surcharge', 'Airport_fee']
+  drop_remaining_nulls : no remaining nulls
+  filter_monetary_logic   : dropped 11 invalid/outlier rows
+  Output rows : 989
+  Saved cleaned file -> data/processed/DF_test_2024_2025_cleaned.parquet
+
+Purging raw train dataframe and clean train dataframe from memory...
+
+Loading raw test dataset...
+  [SMOKE TEST] Loading only the first partition file: yellow_tripdata_2026-01.parquet
+  [SMOKE TEST] Sampling 1,000 rows from test raw dataset.
+
+Cleaning test datasets...
+
+============================================================
+STARTING CLEANING PIPELINE
+============================================================
+Loading data from DF...
+Processing DataFrame...
+  Input  rows : 1,000
+  fill_non_critical_nulls : filled - RatecodeID (294 -> 1), store_and_fwd_flag (294 -> 'N'), Airport_fee (294 -> 0.0)
+  select_relevant_columns : dropped 10 columns - ['VendorID', 'passenger_count', 'store_and_fwd_flag', 'extra', 'mta_tax', 'tolls_amount', 'improvement_surcharge', 'congestion_surcharge', 'Airport_fee', 'cbd_congestion_fee']
+  Output rows : 1,000
+  Saved cleaned file -> data/processed/Df_test_2026_cleaned.parquet
+
+Purging raw test dataframe and clean test dataframe from memory...
+  Training set: 989 rows
+  Test set:     1,000 rows
+  [Duration] Data cleaning finished in 1.57s
+
+******************************
+1.5 Prepare Features
+******************************
+
+Loading train clean dataset for features...
+
+Running baseline feature engineering on train clean dataset...
+  Baseline train features saved -> data/processed/baseline_train.parquet
+
+Running engineered feature engineering on train clean dataset...
+  Engineered train features saved -> data/processed/engineered_train.parquet
+  Baseline scaler saved -> data/feature_stores/baseline_scaler.pkl
+  Engineered scaler saved -> data/feature_stores/engineered_scaler.pkl
+
+Loading test clean dataset for features...
+
+Running baseline feature engineering on test clean dataset...
+  Baseline test features saved -> data/processed/baseline_test.parquet
+
+Running engineered feature engineering on test clean dataset...
+  Engineered test features saved -> data/processed/engineered_test.parquet
+  [Duration] Features preparation finished in 2.13s
+
+>>> [Duration] ACT 1 completed in 6.01s

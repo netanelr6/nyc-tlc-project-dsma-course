@@ -16,6 +16,8 @@ This repository contains a modular, end-to-end Machine Learning pipeline develop
 ## 🎓 Academic Context
 This project was developed as part of the **Data Science Methods and Applications (DSMA)** course (2026) at Ben-Gurion University of the Negev (BGU).
 
+We would like to express our deep appreciation and thanks to our lecturer, **[Trivikram Muralidharan](https://github.com/trivikram-muralidharan)**, for his guidance, support, and for delivering an outstanding and inspiring course.
+
 ---
 
 ## 📁 Key Project Files & Documents

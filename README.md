@@ -25,6 +25,7 @@ We would like to express our deep appreciation and thanks to our lecturer, **[Tr
 For quick access, here are the primary assets, reports, and notebooks of the project:
 *   📄 **[pipeline.py](pipeline.py)** - The core orchestration script for the ML pipeline (Acts 1-6).
 *   📁 **[notebooks/01_eda_trip_fare.ipynb](notebooks/01_eda_trip_fare.ipynb)** - The Exploratory Data Analysis (EDA) notebook.
+    *   *(Cloud Alternative: Run directly on [Google Colab / Drive Version](https://drive.google.com/file/d/16Sphd6PwAB3eKw6orKDPcFnFlkJHqMkL/view?usp=sharing))*
 *   📄 **[notebooks/Trip Fare Estimation - final report.pdf](notebooks/Trip%20Fare%20Estimation%20-%20final%20report.pdf)** - The final project report (PDF).
 *   📄 **[notebooks/Assignment_Choice_2-NYC_TLC_total_fare_amount_prediction.pdf](notebooks/Assignment_Choice_2-NYC_TLC_total_fare_amount_prediction.pdf)** - The BGU course project instructions & guidelines.
 
@@ -116,6 +117,9 @@ The dashboard allows you to:
 ### 7. Review the EDA Notebook
 The Exploratory Data Analysis (EDA) notebook, containing extensive visualizations, outlier filtering decisions, and key domain observations, is located at:
 📁 **[notebooks/01_eda_trip_fare.ipynb](notebooks/01_eda_trip_fare.ipynb)**
+
+*   **Cloud Run Alternative (Google Colab):** If you prefer to run the EDA analysis interactively in the cloud without downloading anything locally, you can open and execute the standalone notebook via Google Drive:
+    🔗 **[Open Standalone EDA in Google Colab](https://drive.google.com/file/d/16Sphd6PwAB3eKw6orKDPcFnFlkJHqMkL/view?usp=sharing)**
 
 ---
 

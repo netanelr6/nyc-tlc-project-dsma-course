@@ -1,0 +1,265 @@
+
+============================================================
+ Weights & Biases (W&B) API Key is missing.
+ Choose how to proceed:
+  (1) Proceed with manual W&B login (standard W&B menu)
+  (2) Skip W&B completely (Run fully local/offline, no W&B tracking)
+============================================================
+[W&B] Proceeding with standard W&B manual login...
+
+
+============================================================
+ACT 5 — Staging & Testing (2026 Hold-out Evaluation)
+============================================================
+
+******************************
+5.1 Final Test-Set Inference & Performance Check
+******************************
+
+  Tuned Model Evaluation on Unseen 2026 Data:
+    MAE  : $5.31
+    RMSE : $12.81
+
+============================================================
+ Weights & Biases (W&B) API Key is missing.
+ Choose how to proceed:
+  (1) Proceed with manual W&B login (standard W&B menu)
+  (2) Skip W&B completely (Run fully local/offline, no W&B tracking)
+============================================================
+[W&B] Proceeding with standard W&B manual login...
+
+wandb: WARNING The anonymous parameter to wandb.login() has no effect and will be removed in future versions.
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from C:\Users\netan\_netrc.
+wandb: Currently logged in as: rahumn (dsma_2026) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: WARNING Using a boolean value for 'reinit' is deprecated. Use 'return_previous' or 'finish_previous' instead.
+wandb: ⢿ setting up run ymjdi3ln (0.0s)
+mwandb: ⣻ setting up run ymjdi3ln (0.0s)
+mwandb: ⣽ setting up run ymjdi3ln (0.0s)
+mwandb: ⣾ setting up run ymjdi3ln (0.0s)
+mwandb: ⣷ setting up run ymjdi3ln (0.5s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\DSMA TEST RUN\nyc-tlc-project-dsma-course\wandb\run-20260617_211433-ymjdi3ln
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run tuned-gradient_boosting-eval-2026
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final/runs/ymjdi3ln
+[W&B] Successfully connected and logged to W&B.
+wandb: ⢿ updating run metadata (2.8s)
+wandb: ⢿ uploading artifact tuned-champion (0.2s)
+wandb: ⢿ uploading artifact feature-pipeline (0.0s)
+mmmwandb: ⣻ updating run metadata (2.8s)
+wandb: ⣻ uploading artifact tuned-champion (0.2s)
+wandb: ⣻ uploading artifact feature-pipeline (0.0s)
+mmmwandb: ⣽ updating run metadata (2.8s)
+wandb: ⣽ uploading artifact tuned-champion (0.2s)
+wandb: ⣽ uploading artifact feature-pipeline (0.0s)
+mmmwandb: ⣾ updating run metadata (2.8s)
+wandb: ⣾ uploading artifact tuned-champion (0.2s)
+wandb: ⣾ uploading artifact feature-pipeline (0.0s)
+mmmwandb: ⣷ Finishing up...
+mwandb: ⣯ Finishing up...
+mwandb: ⣟ Finishing up...
+mwandb: ⡿ Finishing up...
+mwandb: ⢿ Finishing up...
+mwandb: ⣻ uploading summary (0.0s)
+mwandb: ⣽ uploading summary (0.0s)
+mwandb: ⣾ uploading summary (0.0s)
+mwandb: WARNING Artifact "tuned-champion" already exists with the same content. No new version will be created.
+wandb: 
+wandb: Run summary:
+wandb:  mae 5.31097
+wandb: rmse 12.81492
+wandb: 
+wandb:  View run tuned-gradient_boosting-eval-2026 at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final/runs/ymjdi3ln
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final
+wandb: Synced 5 W&B file(s), 0 media file(s), 0 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260617_211433-ymjdi3ln\logs
+  W&B run logged -> https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final/runs/ymjdi3ln
+
+******************************
+5.2 Error Analysis on Hold-out Predictions
+******************************
+
+  Metric                      Value
+  -----------------------------------
+  Mean Abs Error         $     5.31
+  Median Abs Error       $     1.99
+  90th pct Error         $    13.00
+  Max Error              $  2656.73
+  Mean Pct Error              16.0 %
+
+  Error by Rush Hour vs Off-Peak:
+    Rush Hour                  MAE = $5.59
+    Off-Peak                   MAE = $5.14
+  Plot saved -> outputs\plots\error_by_rush_hour_label.png
+  Plot saved -> outputs\plots\error_hist_rush_hour_label.png
+
+  Error by Time of Day Bucket:
+    Unknown                    MAE = $5.31
+  Plot saved -> outputs\plots\error_by_time_of_day.png
+  Plot saved -> outputs\plots\error_hist_time_of_day.png
+
+  Error by Trip Distance Quartile:
+    Q4 (long)                  MAE = $7.89
+    Q1 (short)                 MAE = $5.02
+    Q3                         MAE = $4.93
+    Q2                         MAE = $3.37
+  Plot saved -> outputs\plots\error_by_distance_bucket.png
+  Plot saved -> outputs\plots\error_hist_distance_bucket.png
+
+  Error by Airport vs Non-Airport:
+    Airport                    MAE = $9.18
+    Non-Airport                MAE = $5.06
+  Plot saved -> outputs\plots\error_by_trip_type.png
+  Plot saved -> outputs\plots\error_hist_trip_type.png
+
+  Error by Day of Week:
+    Unknown                    MAE = $5.31
+  Plot saved -> outputs\plots\error_by_day_name.png
+  Plot saved -> outputs\plots\error_hist_day_name.png
+
+============================================================
+ Weights & Biases (W&B) API Key is missing.
+ Choose how to proceed:
+  (1) Proceed with manual W&B login (standard W&B menu)
+  (2) Skip W&B completely (Run fully local/offline, no W&B tracking)
+============================================================
+[W&B] Proceeding with standard W&B manual login...
+
+wandb: ⢿ setting up run plf6zzuw (0.0s)
+mwandb: ⣻ setting up run plf6zzuw (0.0s)
+mwandb: ⣽ setting up run plf6zzuw (0.0s)
+mwandb: ⣾ setting up run plf6zzuw (0.0s)
+mwandb: ⣷ setting up run plf6zzuw (0.5s)
+mwandb: Tracking run with wandb version 0.27.0
+wandb: Run data is saved locally in C:\Users\netan\Documents\git\DSMA TEST RUN\nyc-tlc-project-dsma-course\wandb\run-20260617_211636-plf6zzuw
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run error-analysis-2026
+wandb:  View project at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final
+wandb:  View run at https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final/runs/plf6zzuw
+[W&B] Successfully connected and logged to W&B.
+  [W&B Info] Table 'per_sample_errors' has 7,124,755 rows. Subsampling to 50,000 rows for W&B performance.
+wandb: ⢿ uploading artifact run-plf6zzuw-per_sample_errors (1.7s)
+wandb:   ↳ ⢿ per_sample_errors.table.json 1.1MB/6.5MB (0.3s)
+wandb: ⢿ updating run metadata (0.9s)
+mmmwandb: ⣻ uploading artifact run-plf6zzuw-per_sample_errors (1.7s)
+wandb:   ↳ ⣻ per_sample_errors.table.json 1.1MB/6.5MB (0.3s)
+wandb: ⣻ updating run metadata (0.9s)
+mmmwandb: ⣽ uploading artifact run-plf6zzuw-per_sample_errors (1.7s)
+wandb:   ↳ ⣽ per_sample_errors.table.json 1.1MB/6.5MB (0.3s)
+wandb: ⣽ updating run metadata (0.9s)
+mmmwandb: ⣾ uploading artifact run-plf6zzuw-per_sample_errors (1.7s)
+wandb:   ↳ ⣾ per_sample_errors.table.json 1.1MB/6.5MB (0.3s)
+wandb: ⣾ updating run metadata (0.9s)
+mmmwandb: ⣷ uploading artifact run-plf6zzuw-per_sample_errors (2.2s)
+wandb:   ↳ ⣷ per_sample_errors.table.json 1.4MB/6.5MB (0.8s)
+mmwandb: ⣯ uploading artifact run-plf6zzuw-per_sample_errors (2.2s)
+wandb:   ↳ ⣯ per_sample_errors.table.json 1.4MB/6.5MB (0.8s)
+mmwandb: ⣟ uploading artifact run-plf6zzuw-per_sample_errors (2.2s)
+wandb:   ↳ ⣟ per_sample_errors.table.json 1.4MB/6.5MB (0.8s)
+mmwandb: ⡿ uploading artifact run-plf6zzuw-per_sample_errors (2.2s)
+wandb:   ↳ ⡿ per_sample_errors.table.json 1.4MB/6.5MB (0.8s)
+mmwandb: ⢿ uploading artifact run-plf6zzuw-per_sample_errors (2.2s)
+wandb:   ↳ ⢿ per_sample_errors.table.json 1.4MB/6.5MB (0.8s)
+mmwandb: ⣻ uploading artifact run-plf6zzuw-per_sample_errors (2.8s)
+wandb:   ↳ ⣻ per_sample_errors.table.json 2.6MB/6.5MB (1.3s)
+mmwandb: ⣽ uploading artifact run-plf6zzuw-per_sample_errors (2.8s)
+wandb:   ↳ ⣽ per_sample_errors.table.json 2.6MB/6.5MB (1.3s)
+mmwandb: ⣾ uploading artifact run-plf6zzuw-per_sample_errors (2.8s)
+wandb:   ↳ ⣾ per_sample_errors.table.json 2.6MB/6.5MB (1.3s)
+mmwandb: ⣷ uploading artifact run-plf6zzuw-per_sample_errors (2.8s)
+wandb:   ↳ ⣷ per_sample_errors.table.json 2.6MB/6.5MB (1.3s)
+mmwandb: ⣯ uploading artifact run-plf6zzuw-per_sample_errors (2.8s)
+wandb:   ↳ ⣯ per_sample_errors.table.json 2.6MB/6.5MB (1.3s)
+mmwandb: ⣟ uploading artifact run-plf6zzuw-per_sample_errors (3.3s)
+wandb:   ↳ ⣟ per_sample_errors.table.json 6.5MB/6.5MB (1.9s)
+mmwandb: ⡿ uploading artifact run-plf6zzuw-per_sample_errors (3.3s)
+wandb:   ↳ ⡿ per_sample_errors.table.json 6.5MB/6.5MB (1.9s)
+mmwandb: ⢿ uploading artifact run-plf6zzuw-per_sample_errors (3.3s)
+wandb:   ↳ ⢿ per_sample_errors.table.json 6.5MB/6.5MB (1.9s)
+mmwandb: ⣻ uploading artifact run-plf6zzuw-per_sample_errors (3.3s)
+wandb:   ↳ ⣻ per_sample_errors.table.json 6.5MB/6.5MB (1.9s)
+mmwandb: ⣽ uploading artifact run-plf6zzuw-per_sample_errors (3.8s)
+mwandb: ⣾ uploading artifact run-plf6zzuw-per_sample_errors (3.8s)
+mwandb: ⣷ uploading artifact run-plf6zzuw-per_sample_errors (3.8s)
+mwandb: ⣯ uploading artifact run-plf6zzuw-per_sample_errors (3.8s)
+mwandb: ⣟ uploading artifact run-plf6zzuw-per_sample_errors (3.8s)
+mwandb: ⡿ uploading artifact run-plf6zzuw-per_sample_errors (4.3s)
+mwandb: ⢿ uploading artifact run-plf6zzuw-per_sample_errors (4.3s)
+mwandb: ⣻ uploading artifact run-plf6zzuw-per_sample_errors (4.3s)
+mwandb: ⣽ uploading artifact run-plf6zzuw-per_sample_errors (4.3s)
+mwandb: ⣾ uploading artifact run-plf6zzuw-per_sample_errors (4.3s)
+mwandb: ⣷ uploading artifact run-plf6zzuw-per_sample_errors (4.8s)
+mwandb: ⣯ uploading artifact run-plf6zzuw-per_sample_errors (4.8s)
+mwandb: ⣟ uploading artifact run-plf6zzuw-per_sample_errors (4.8s)
+mwandb: ⡿ uploading artifact run-plf6zzuw-per_sample_errors (4.8s)
+mwandb: ⢿ uploading artifact run-plf6zzuw-per_sample_errors (4.8s)
+mwandb: ⣻ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 816.0KB/1.2MB (0.0s)
+wandb: ⣻ uploading media\images\error_by_rush_hour_label_1_8048a52d32acbd21b4d9.png 15.3KB/15.3KB (0.0s)
+wandb: ⣻ uploading media\images\error_by_time_of_day_3_df01300caad292a748de.png 11.9KB/11.9KB (0.0s)
+wandb: ⣻ uploading media\images\error_by_time_of_day_hist_4_3e72e8c43272812a6fd0.png 16.9KB/16.9KB (0.0s)
+wandb: ⣻ uploading media\images\error_by_distance_bucket_5_df0ff40e050a425f9ddc.png 21.7KB/21.7KB (0.0s)
+wandb: + 9 more task(s)
+mmmmmmwandb: ⣽ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 816.0KB/1.2MB (0.0s)
+wandb: ⣽ uploading media\images\error_by_rush_hour_label_1_8048a52d32acbd21b4d9.png 15.3KB/15.3KB (0.0s)
+wandb: ⣽ uploading media\images\error_by_time_of_day_3_df01300caad292a748de.png 11.9KB/11.9KB (0.0s)
+wandb: ⣽ uploading media\images\error_by_time_of_day_hist_4_3e72e8c43272812a6fd0.png 16.9KB/16.9KB (0.0s)
+wandb: ⣽ uploading media\images\error_by_distance_bucket_5_df0ff40e050a425f9ddc.png 21.7KB/21.7KB (0.0s)
+wandb: + 9 more task(s)
+mmmmmmwandb: ⣾ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 816.0KB/1.2MB (0.0s)
+wandb: ⣾ uploading media\images\error_by_rush_hour_label_1_8048a52d32acbd21b4d9.png 15.3KB/15.3KB (0.0s)
+wandb: ⣾ uploading media\images\error_by_time_of_day_3_df01300caad292a748de.png 11.9KB/11.9KB (0.0s)
+wandb: ⣾ uploading media\images\error_by_time_of_day_hist_4_3e72e8c43272812a6fd0.png 16.9KB/16.9KB (0.0s)
+wandb: ⣾ uploading media\images\error_by_distance_bucket_5_df0ff40e050a425f9ddc.png 21.7KB/21.7KB (0.0s)
+wandb: + 9 more task(s)
+mmmmmmwandb: ⣷ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 816.0KB/1.2MB (0.0s)
+wandb: ⣷ uploading media\images\error_by_rush_hour_label_1_8048a52d32acbd21b4d9.png 15.3KB/15.3KB (0.0s)
+wandb: ⣷ uploading media\images\error_by_time_of_day_3_df01300caad292a748de.png 11.9KB/11.9KB (0.0s)
+wandb: ⣷ uploading media\images\error_by_time_of_day_hist_4_3e72e8c43272812a6fd0.png 16.9KB/16.9KB (0.0s)
+wandb: ⣷ uploading media\images\error_by_distance_bucket_5_df0ff40e050a425f9ddc.png 21.7KB/21.7KB (0.0s)
+wandb: + 9 more task(s)
+mmmmmmwandb: ⣯ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (0.6s)
+mwandb: ⣟ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (0.6s)
+mwandb: ⡿ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (0.6s)
+mwandb: ⢿ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (0.6s)
+mwandb: ⣻ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (0.6s)
+mwandb: ⣽ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (1.1s)
+mwandb: ⣾ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (1.1s)
+mwandb: ⣷ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (1.1s)
+mwandb: ⣯ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (1.1s)
+mwandb: ⣟ uploading media\table\per_sample_errors_0_603c99e40a5c82c570f4.table.json 1.2MB/1.2MB (1.1s)
+mwandb: ⡿ uploading history steps 0-10, summary (0.1s)
+mwandb: ⢿ uploading history steps 0-10, summary (0.1s)
+mwandb: 
+wandb: Run summary:
+wandb:           mae 5.31097
+wandb: p90_abs_error 13.00203
+wandb: 
+wandb:  View run error-analysis-2026 at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final/runs/plf6zzuw
+wandb:  View project at: https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final
+wandb: Synced 5 W&B file(s), 11 media file(s), 2 artifact file(s) and 0 other file(s)
+wandb: Find logs at: .\wandb\run-20260617_211636-plf6zzuw\logs
+
+  W&B run logged -> https://wandb.ai/dsma_fit_happens/dsma-nyc-tlc-taxi-fare-prediction%20-%20final/runs/plf6zzuw
+
+******************************
+5.3 Data Drift Validation (Train vs Test)
+******************************
+
+Drift report:
+         feature     psi  ks_statistic  ks_pvalue  drifted
+0  trip_distance  0.0197        0.0473        0.0     True
+1   PULocationID  0.0080        0.0319        0.0     True
+2   DOLocationID  0.0050        0.0272        0.0     True
+
+Label drift:
+{'psi': 0.110796, 'ks_statistic': 0.1428, 'ks_pvalue': 0.0, 'drifted': True, 'ref_mean': 23.8815, 'cur_mean': 27.0016}
+
+Concept drift:
+{'reference_mae': np.float64(2.3453), 'current_mae': np.float64(5.311), 'mae_delta': np.float64(2.9657), 'mae_pct_increase': np.float64(126.45)}
+
+Generating drift distribution plots...
+  Plot saved -> outputs\plots\drift_dist_trip_distance.png
+  Plot saved -> outputs\plots\label_drift_total_fare.png
+
+>>> [Duration] ACT 5 completed in 921.42s

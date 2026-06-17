@@ -1,0 +1,189 @@
+
+============================================================
+ Weights & Biases (W&B) API Key is missing.
+ Choose how to proceed:
+  (1) Proceed with manual W&B login (standard W&B menu)
+  (2) Skip W&B completely (Run fully local/offline, no W&B tracking)
+============================================================
+[W&B] Proceeding with standard W&B manual login...
+
+
+============================================================
+ACT 1 — Data Exploration & Prep
+============================================================
+
+******************************
+1.1 Data Download
+******************************
+Running download pipeline check...
+============================================================
+INITIALIZING NYC TLC DATA SYNC PIPELINE
+============================================================
+  [FETCHING] yellow_tripdata_2024-01.parquet
+             URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-01.parquet
+    Progress:   0%|                                                                        | 0.00/50.0M [00:00<?, ?B/s]    Progress:   5%|███▍                                                           | 2.74M/50.0M [00:00<00:01, 27.4MB/s]    Progress:  18%|███████████▎                                                   | 9.02M/50.0M [00:00<00:00, 48.2MB/s]    Progress:  35%|█████████████████████▉                                         | 17.4M/50.0M [00:00<00:00, 64.3MB/s]    Progress:  49%|██████████████████████████████▋                                | 24.4M/50.0M [00:00<00:00, 66.4MB/s]    Progress:  62%|███████████████████████████████████████                        | 31.0M/50.0M [00:00<00:00, 62.5MB/s]    Progress:  80%|██████████████████████████████████████████████████             | 39.7M/50.0M [00:00<00:00, 70.4MB/s]    Progress:  98%|█████████████████████████████████████████████████████████████▉ | 49.1M/50.0M [00:00<00:00, 77.6MB/s]    Progress: 100%|███████████████████████████████████████████████████████████████| 50.0M/50.0M [00:00<00:00, 68.2MB/s]
+  [FETCHING] yellow_tripdata_2024-02.parquet
+             URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2024-02.parquet
+    Progress:   0%|                                                                        | 0.00/50.3M [00:00<?, ?B/s]    Progress:  10%|██████▏                                                        | 4.93M/50.3M [00:00<00:00, 48.7MB/s]    Progress:  24%|██████████████▊                                                | 11.9M/50.3M [00:00<00:00, 60.8MB/s]    Progress:  42%|██████████████████████████▍                                    | 21.1M/50.3M [00:00<00:00, 75.2MB/s]    Progress:  57%|███████████████████████████████████▊                           | 28.6M/50.3M [00:00<00:00, 64.4MB/s]    Progress:  70%|████████████████████████████████████████████▏                  | 35.3M/50.3M [00:00<00:00, 33.3MB/s]    Progress:  81%|███████████████████████████████████████████████████▏           | 40.9M/50.3M [00:00<00:00, 37.7MB/s]    Progress:  93%|██████████████████████████████████████████████████████████▍    | 46.7M/50.3M [00:01<00:00, 42.0MB/s]    Progress: 100%|███████████████████████████████████████████████████████████████| 50.3M/50.3M [00:01<00:00, 46.1MB/s]
+  [FETCHING] yellow_tripdata_2025-01.parquet
+             URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-01.parquet
+    Progress:   0%|                                                                        | 0.00/59.2M [00:00<?, ?B/s]    Progress:   0%|▏                                                               | 213k/59.2M [00:00<00:28, 2.04MB/s]    Progress:   1%|▉                                                               | 868k/59.2M [00:00<00:12, 4.58MB/s]    Progress:   5%|███▎                                                           | 3.15M/59.2M [00:00<00:04, 12.7MB/s]    Progress:  16%|█████████▉                                                     | 9.36M/59.2M [00:00<00:01, 32.0MB/s]    Progress:  28%|█████████████████▉                                             | 16.9M/59.2M [00:00<00:00, 47.4MB/s]    Progress:  38%|███████████████████████▋                                       | 22.3M/59.2M [00:00<00:00, 49.6MB/s]    Progress:  54%|██████████████████████████████████▎                            | 32.2M/59.2M [00:00<00:00, 65.6MB/s]    Progress:  67%|██████████████████████████████████████████▍                    | 39.8M/59.2M [00:00<00:00, 60.9MB/s]    Progress:  79%|█████████████████████████████████████████████████▍             | 46.5M/59.2M [00:00<00:00, 62.4MB/s]    Progress:  89%|████████████████████████████████████████████████████████▏      | 52.8M/59.2M [00:01<00:00, 54.9MB/s]    Progress: 100%|███████████████████████████████████████████████████████████████| 59.2M/59.2M [00:01<00:00, 49.7MB/s]
+  [FETCHING] yellow_tripdata_2025-02.parquet
+             URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2025-02.parquet
+    Progress:   0%|                                                                        | 0.00/60.3M [00:00<?, ?B/s]    Progress:   1%|▌                                                               | 475k/60.3M [00:00<00:12, 4.61MB/s]    Progress:   4%|██▎                                                            | 2.24M/60.3M [00:00<00:04, 12.2MB/s]    Progress:  11%|███████                                                        | 6.72M/60.3M [00:00<00:02, 26.5MB/s]    Progress:  22%|█████████████▉                                                 | 13.4M/60.3M [00:00<00:01, 41.9MB/s]    Progress:  33%|████████████████████▉                                          | 20.0M/60.3M [00:00<00:00, 50.6MB/s]    Progress:  46%|█████████████████████████████▏                                 | 28.0M/60.3M [00:00<00:00, 60.1MB/s]    Progress:  60%|█████████████████████████████████████▊                         | 36.3M/60.3M [00:00<00:00, 67.5MB/s]    Progress:  73%|██████████████████████████████████████████████▎                | 44.3M/60.3M [00:00<00:00, 71.2MB/s]    Progress:  85%|█████████████████████████████████████████████████████▋         | 51.4M/60.3M [00:00<00:00, 68.6MB/s]    Progress: 100%|███████████████████████████████████████████████████████████████| 60.3M/60.3M [00:01<00:00, 59.4MB/s]
+  [FETCHING] yellow_tripdata_2026-01.parquet
+             URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2026-01.parquet
+    Progress:   0%|                                                                        | 0.00/64.2M [00:00<?, ?B/s]    Progress:   2%|▉                                                              | 1.02M/64.2M [00:00<00:06, 9.89MB/s]    Progress:   4%|██▎                                                            | 2.33M/64.2M [00:00<00:05, 11.7MB/s]    Progress:   6%|███▉                                                           | 4.00M/64.2M [00:00<00:04, 14.0MB/s]    Progress:  10%|██████                                                         | 6.18M/64.2M [00:00<00:03, 17.0MB/s]    Progress:  14%|████████▋                                                      | 8.86M/64.2M [00:00<00:02, 20.6MB/s]    Progress:  20%|████████████▎                                                  | 12.6M/64.2M [00:00<00:01, 26.1MB/s]    Progress:  27%|████████████████▉                                              | 17.2M/64.2M [00:00<00:01, 32.7MB/s]    Progress:  36%|██████████████████████▌                                        | 23.0M/64.2M [00:00<00:01, 40.7MB/s]    Progress:  48%|█████████████████████████████▉                                 | 30.5M/64.2M [00:00<00:00, 51.2MB/s]    Progress:  59%|█████████████████████████████████████▍                         | 38.1M/64.2M [00:01<00:00, 58.7MB/s]    Progress:  70%|███████████████████████████████████████████▉                   | 44.8M/64.2M [00:01<00:00, 61.3MB/s]    Progress:  83%|████████████████████████████████████████████████████▎          | 53.3M/64.2M [00:01<00:00, 64.4MB/s]    Progress:  98%|█████████████████████████████████████████████████████████████▌ | 62.7M/64.2M [00:01<00:00, 70.1MB/s]    Progress: 100%|███████████████████████████████████████████████████████████████| 64.2M/64.2M [00:01<00:00, 47.6MB/s]
+  [FETCHING] yellow_tripdata_2026-02.parquet
+             URL: https://d37ci6vzurychx.cloudfront.net/trip-data/yellow_tripdata_2026-02.parquet
+    Progress:   0%|                                                                        | 0.00/58.7M [00:00<?, ?B/s]    Progress:   5%|███▎                                                           | 3.07M/58.7M [00:00<00:01, 30.7MB/s]    Progress:  17%|██████████▊                                                    | 10.0M/58.7M [00:00<00:00, 53.0MB/s]    Progress:  31%|███████████████████▊                                           | 18.4M/58.7M [00:00<00:00, 67.0MB/s]    Progress:  43%|███████████████████████████▎                                   | 25.4M/58.7M [00:00<00:00, 64.7MB/s]    Progress:  60%|█████████████████████████████████████▊                         | 35.3M/58.7M [00:00<00:00, 76.4MB/s]    Progress:  73%|██████████████████████████████████████████████                 | 42.9M/58.7M [00:00<00:00, 64.7MB/s]    Progress:  87%|██████████████████████████████████████████████████████▉        | 51.2M/58.7M [00:00<00:00, 68.3MB/s]    Progress: 100%|███████████████████████████████████████████████████████████████| 58.7M/58.7M [00:00<00:00, 69.3MB/s]
+============================================================
+PIPELINE EXECUTION COMPLETE
+Execution Summary: Successfully verified 6/6 partitions.
+Target Directories:
+  - TRAIN: 'data/raw\train/'
+  - TEST: 'data/raw\test/'
+============================================================
+  [Duration] Data download finished in 9.57s
+
+******************************
+1.2 Data Fundamentals
+******************************
+
+Loading raw training dataset...
+  Train Data: Loaded 13,024,919 rows x 19 columns
+
+  Train Data Columns and Dtypes:
+    - VendorID                  : int8
+    - tpep_pickup_datetime      : datetime64[us]
+    - tpep_dropoff_datetime     : datetime64[us]
+    - passenger_count           : float32
+    - trip_distance             : float32
+    - RatecodeID                : float32
+    - store_and_fwd_flag        : str
+    - PULocationID              : int16
+    - DOLocationID              : int16
+    - payment_type              : int8
+    - fare_amount               : float32
+    - extra                     : float32
+    - mta_tax                   : float32
+    - tip_amount                : float32
+    - tolls_amount              : float32
+    - improvement_surcharge     : float32
+    - total_amount              : float32
+    - congestion_surcharge      : float32
+    - Airport_fee               : float32
+
+  Train Data Summary Statistics (Transposed):
+                            count                        mean                  min                         25%                  50%                         75%                  max         std
+VendorID               13024919.0                    1.774118                  1.0                         2.0                  2.0                         2.0                  7.0    0.435286
+tpep_pickup_datetime     13024919  2024-08-17 04:44:59.619510  2002-12-31 22:59:39         2024-02-03 18:49:58  2025-01-07 09:25:01  2025-02-03 15:07:37.500000  2025-03-01 00:06:32         NaN
+tpep_dropoff_datetime    13024919  2024-08-17 05:00:28.613069  2002-12-31 23:05:41  2024-02-03 19:05:52.500000  2025-01-07 09:40:42  2025-02-03 15:24:26.500000  2025-03-01 23:13:42         NaN
+passenger_count        11352061.0                    1.309817                  0.0                         1.0                  1.0                         1.0                  9.0     0.79107
+trip_distance          13024919.0                    4.939977                  0.0                         1.0                 1.69                        3.12          312722.3125  438.982361
+RatecodeID             11352061.0                    2.282641                  1.0                         1.0                  1.0                         1.0                 99.0   10.810536
+PULocationID           13024919.0                  164.946229                  1.0                       132.0                162.0                       234.0                265.0   64.507587
+DOLocationID           13024919.0                   163.98587                  1.0                       113.0                162.0                       234.0                265.0   69.491194
+payment_type           13024919.0                    1.062159                  0.0                         1.0                  1.0                         1.0                  5.0    0.663673
+fare_amount            13024919.0                    17.46217         -1807.599976                         8.6                 12.8                   19.799999           863372.125  242.703018
+extra                  13024919.0                    1.355744                 -7.5                         0.0                  1.0                         2.5            22.549999    1.830775
+mta_tax                13024919.0                    0.481193                 -0.5                         0.5                  0.5                         0.5                 10.5    0.126653
+tip_amount             13024919.0                     3.06151               -220.0                         0.0                 2.52                         4.0           543.330017    3.792034
+tolls_amount           13024919.0                    0.468368          -126.940002                         0.0                  0.0                         0.0           170.940002    2.020853
+improvement_surcharge  13024919.0                    0.965487                 -1.0                         1.0                  1.0                         1.0                  1.0    0.248744
+total_amount           13024919.0                   25.956621         -1832.849976                       15.35                20.15                   28.200001           863380.375  243.058395
+congestion_surcharge   11352061.0                    2.244747                 -2.5                         2.5                  2.5                         2.5                  2.5    0.860374
+Airport_fee            11352061.0                    0.128941                -1.75                         0.0                  0.0                         0.0                 6.75     0.47463
+  [Duration] Data fundamentals finished in 13.90s
+
+******************************
+1.3 Data Validation
+******************************
+  Result: SOME CHECKS FAILED (10/12 checks passed)
+
+  #    Column                                       Check                                            Result
+  ---------------------------------------------------------------------------------------------------------
+  1    tpep_pickup_datetime                         not_null                                         OK  
+  2    tpep_dropoff_datetime                        not_null                                         OK  
+  3    tpep_pickup_datetime, tpep_dropoff_datetime  tpep_dropoff_datetime_geq_tpep_pickup_datetime   FAIL
+     >> 0.00% of rows violate ordering constraint (tpep_dropoff_datetime < tpep_pickup_datetime)
+  4    PULocationID                                 not_null                                         OK  
+  5    PULocationID                                 between[1,265]                                   OK  
+  6    DOLocationID                                 not_null                                         OK  
+  7    DOLocationID                                 between[1,265]                                   OK  
+  8    trip_distance                                between[0.0,None]                                OK  
+  9    payment_type, tip_amount                     cash_tip_anomaly_check                           OK  
+  10   total_amount                                 not_null                                         OK  
+  11   total_amount                                 between[0.0,None]                                FAIL
+     >> Failed threshold: 98.54% within range < 100.00%
+  12   fare_amount                                  between[3.0,None]                                OK  
+  [Duration] Data validation finished in 0.67s
+
+******************************
+1.4 Data Cleaning
+******************************
+
+Cleaning training datasets...
+
+============================================================
+STARTING CLEANING PIPELINE
+============================================================
+Loading data from DF...
+Processing DataFrame...
+  Input  rows : 13,024,919
+  drop_critical_nulls  : no rows dropped
+  drop_pre_december_2023  : dropped 7 rows
+  fill_non_critical_nulls : filled - RatecodeID (1,672,858 -> 1), store_and_fwd_flag (1,672,858 -> 'N'), Airport_fee (1,672,858 -> 0.0)
+  select_relevant_columns : dropped 9 columns - ['VendorID', 'passenger_count', 'store_and_fwd_flag', 'extra', 'mta_tax', 'tolls_amount', 'improvement_surcharge', 'congestion_surcharge', 'Airport_fee']
+  drop_remaining_nulls : no remaining nulls
+  filter_temporal_logic   : dropped 280 invalid rows
+  filter_monetary_logic   : dropped 418,923 invalid/outlier rows
+  Output rows : 12,605,709
+  Saved cleaned file -> data/processed/DF_test_2024_2025_cleaned.parquet
+
+Purging raw train dataframe and clean train dataframe from memory...
+
+Loading raw test dataset...
+
+Cleaning test datasets...
+
+============================================================
+STARTING CLEANING PIPELINE
+============================================================
+Loading data from DF...
+Processing DataFrame...
+  Input  rows : 7,124,755
+  fill_non_critical_nulls : filled - RatecodeID (2,111,375 -> 1), store_and_fwd_flag (2,111,375 -> 'N'), Airport_fee (2,111,375 -> 0.0)
+  select_relevant_columns : dropped 10 columns - ['VendorID', 'passenger_count', 'store_and_fwd_flag', 'extra', 'mta_tax', 'tolls_amount', 'improvement_surcharge', 'congestion_surcharge', 'Airport_fee', 'cbd_congestion_fee']
+  Output rows : 7,124,755
+  Saved cleaned file -> data/processed/Df_test_2026_cleaned.parquet
+
+Purging raw test dataframe and clean test dataframe from memory...
+  Training set: 12,605,709 rows
+  Test set:     7,124,755 rows
+  [Duration] Data cleaning finished in 17.47s
+
+******************************
+1.5 Prepare Features
+******************************
+
+Loading train clean dataset for features...
+
+Running baseline feature engineering on train clean dataset...
+  Baseline train features saved -> data/processed/baseline_train.parquet
+
+Running engineered feature engineering on train clean dataset...
+  Engineered train features saved -> data/processed/engineered_train.parquet
+  Baseline scaler saved -> data/feature_stores/baseline_scaler.pkl
+  Engineered scaler saved -> data/feature_stores/engineered_scaler.pkl
+
+Loading test clean dataset for features...
+
+Running baseline feature engineering on test clean dataset...
+  Baseline test features saved -> data/processed/baseline_test.parquet
+
+Running engineered feature engineering on test clean dataset...
+  Engineered test features saved -> data/processed/engineered_test.parquet
+  [Duration] Features preparation finished in 80.79s
+
+>>> [Duration] ACT 1 completed in 122.42s

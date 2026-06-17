@@ -1,0 +1,29 @@
+
+============================================================
+ Weights & Biases (W&B) API Key is missing.
+ Choose how to proceed:
+  (1) Proceed with manual W&B login (standard W&B menu)
+  (2) Skip W&B completely (Run fully local/offline, no W&B tracking)
+============================================================
+[W&B] Proceeding with standard W&B manual login...
+
+
+============================================================
+ACT 6 — Deployment (Streamlit Application Preparation)
+============================================================
+
+******************************
+6.1 Asset Verification
+******************************
+  [OK] Asset verified: 'models\engineered\scaler.pkl'
+  [OK] Asset verified: 'models\winning_model\tuned_gradient_boosting.pkl'
+  [OK] Asset verified: 'notebooks\taxi_zone_lookup.csv'
+
+******************************
+6.2 App Launcher Prompt
+******************************
+  [READY] All deployment assets are successfully verified!
+  To launch the deployment dashboard, run the launcher batch file:
+    .\run_streamlit.bat
+
+>>> [Duration] ACT 6 completed in 0.02s
